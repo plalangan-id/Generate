@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manajemen Tagihan - PLALANGAN.NET</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #0f172a; /* Slate 900 */
+            color: #e2e8f0; /* Slate 200 */
+        }
+        /* Scrollbar super tipis biar hemat ruang di layar HP */
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body class="p-2 antialiased" x-data="billApp()" x-init="initData()">
+
+    <header class="mb-3 bg-slate-800 p-2.5 rounded-lg border border-slate-700 shadow-sm">
+        <div class="flex justify-between items-center mb-2">
+            <h1 class="text-xs font-bold text-emerald-400 tracking-wide uppercase">Rekap Billing (Matrix Mode)</h1>
+            <select x-model="selectedMonth" @change="loadBulan()" class="bg-slate-900 border border-slate-600 text-[11px] rounded px-1.5 py-0.5 text-slate-200 font-medium focus:outline-none">
+                <option value="Januari">Januari</option>
+                <option value="Februari">Februari</option>
+                <option value="Maret">Maret</option>
+                <option value="April">April</option>
+                <option value="Mei">Mei</option>
+                <option value="Juni">Juni</option>
+                <option value="Juli">Juli</option>
+                <option value="Agustus">Agustus</option>
+                <option value="September">September</option>
+                <option value="Oktober">Oktober</option>
+                <option value="November">November</option>
+                <option value="Desember">Desember</option>
+            </select>
+        </div>
+
+        <div class="grid grid-cols-3 gap-1.5 text-[11px]">
+            <div class="bg-slate-950 p-1.5 rounded border-l-2 border-emerald-500">
+                <span class="text-slate-400 block text-[9px] uppercase font-semibold">Uang Masuk</span>
+                <span class="font-bold text-emerald-400" x-text="formatRupiah(totalMasuk())">Rp 0</span>
+            </div>
+            <div class="bg-slate-950 p-1.5 rounded border-l-2 border-rose-500">
+                <span class="text-slate-400 block text-[9px] uppercase font-semibold">Belum Bayar</span>
+                <span class="font-bold text-rose-400" x-text="formatRupiah(totalBelum())">Rp 0</span>
+            </div>
+            <div class="bg-slate-950 p-1.5 rounded border-l-2 border-blue-500">
+                <span class="text-slate-400 block text-[9px] uppercase font-semibold">Total Target</span>
+                <span class="font-bold text-blue-400" x-text="formatRupiah(totalTarget())">Rp 0</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="mb-2 flex gap-2 justify-between items-center bg-slate-800/50 p-2 rounded-lg border border-slate-700/60">
+        <div class="flex gap-1.5 items-center">
+            <button @click="filterStatus = 'semua'" :class="filterStatus === 'semua' ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-300'" class="text-[10px] font-semibold px-2 py-0.5 rounded transition">Semua</button>
+            <button @click="filterStatus = 'belum'" :class="filterStatus === 'belum' ? 'bg-rose-600 text-white border-rose-500' : 'bg-slate-700 text-slate-300'" class="text-[10px] font-semibold px-2 py-0.5 rounded transition flex items-center gap-1">
+                Belum Bayar <span class="bg-slate-900/60 text-rose-300 px-1 rounded-sm text-[9px]" x-text="countBelum()">0</span>
+            </button>
+        </div>
+        <button @click="generateMassal()" :disabled="loading" class="bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold text-[10px] px-2.5 py-1 rounded shadow transition flex items-center gap-1 disabled:opacity-50">
+            <span x-show="!loading">⚡ Reset Bulan Ini</span>
+            <span x-show="loading">Proses...</span>
+        </button>
+    </div>
+
+    <main class="bg-slate-800 rounded-lg border border-slate-700 shadow-md overflow-hidden mb-3">
+        <div class="p-1.5 bg-slate-900/50 border-b border-slate-700">
+            <input type="text" x-model="searchQuery" placeholder="Cari nama member..." class="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500">
+        </div>
+
+        <div class="overflow-x-auto relative">
+            <div x-show="loading" class="absolute inset-0 bg-slate-900/80 flex items-center justify-center text-xs text-emerald-400 font-semibold z-10">
+                Menghubungkan ke Google Sheets...
+            </div>
+
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-slate-900 text-slate-400 uppercase text-[9px] font-bold tracking-wider border-b border-slate-700">
+                        <th class="py-1.5 px-2 text-center w-8">No</th>
+                        <th class="py-1.5 px-2">Nama Member</th>
+                        <th class="py-1.5 px-2 text-right">Tagihan</th>
+                        <th class="py-1.5 px-2 text-center w-20">Status</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-700/40 text-xs">
+                    <template x-for="(item, index) in filteredMembers()" :key="item.id + '_' + item.bulanTarget">
+                        <tr class="hover:bg-slate-700/20 transition-colors" :class="item.lunas ? 'bg-emerald-950/10' : 'bg-rose-950/10'">
+                            <td class="py-1 px-2 text-center text-slate-500 font-mono text-[11px]" x-text="index + 1"></td>
+                            
+                            <td class="py-1 px-2 font-medium text-slate-200 truncate max-w-[140px]">
+                                <span class="font-semibold" x-text="item.nama"></span>
+                                <span x-show="searchQuery.trim() !== ''" class="inline-block bg-slate-950 text-amber-400 font-bold text-[9px] px-1 rounded ml-1 uppercase" x-text="item.bulanTarget"></span>
+                                <span class="block text-[9px] text-slate-400 font-normal" x-text="item.paket"></span>
+                            </td>
+                            
+                            <td class="py-1 px-2 text-right font-mono text-[11px] text-slate-300 font-semibold" x-text="formatRupiah(item.lunas ? item.uangMasuk : item.tagihan)"></td>
+                            
+                            <td class="py-1 px-2 text-center">
+                                <button @click="toggleBayar(item)" 
+                                        :class="item.lunas ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border-rose-500/30'"
+                                        class="w-full text-[10px] font-bold py-0.5 px-1 rounded border transition-all active:scale-95"
+                                        x-text="item.lunas ? 'LUNAS' : 'BAYAR'">
+                                </button>
+                            </td>
+                        </tr>
+                    </template>
+                    <template x-if="filteredMembers().length === 0 && !loading">
+                        <tr>
+                            <td colspan="4" class="py-4 text-center text-xs text-slate-500 italic">Data tidak ditemukan atau belum disinkronisasi.</td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <div id="additional-features" class="space-y-2">
+        <div class="bg-slate-800/40 p-2 rounded-lg border border-slate-700/50 text-center text-[10px] text-slate-500 italic">
+            Wadah menu tambahan siap pakai (Aman tanpa merusak tabel atas).
+        </div>
+    </div>
+
+    <script>
+        // =================================================================
+        // MASUKKAN URL WEB APP APPS SCRIPT KAMU DI BAWAH INI
+        // =================================================================
+        const WEB_APP_URL = "ISI_DENGAN_URL_DEPLOY_APPS_SCRIPT_KAMU";
+
+        function billApp() {
+            return {
+                selectedMonth: 'Mei', // Bulan default saat web dibuka
+                filterStatus: 'semua',
+                searchQuery: '',
+                activeBills: [],
+                loading: false,
+
+                listBulan: ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"],
+
+                initData() {
+                    this.loadBulan();
+                },
+
+                // Fungsi Load: Menarik seluruh matriks data 12 bulan sekaligus dari Google Sheets
+                async loadBulan() {
+                    if(!WEB_APP_URL || WEB_APP_URL.includes("ISI_DENGAN_URL")) return;
+                    this.loading = true;
+                    try {
+                        const response = await fetch(`${WEB_APP_URL}?bulan=semua`);
+                        this.activeBills = await response.json();
+                    } catch (error) {
+                        console.error("Gagal memuat data dari Google Sheets:", error);
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+
+                // Logika Filter & Pencarian Multi-Baris Sesuai Request Kamu
+                filteredMembers() {
+                    let hasilRender = [];
+
+                    // KONDISI 1: JIKA USER SEDANG MENGETIK DI KOLOM PENCARIAN NAMA
+                    if (this.searchQuery.trim() !== '') {
+                        const query = this.searchQuery.toLowerCase();
+                        
+                        this.activeBills.forEach(member => {
+                            if (member.nama.toLowerCase().includes(query)) {
+                                // Telusuri kolom Januari s/d Desember untuk nama tersebut
+                                this.listBulan.forEach(bulan => {
+                                    const uangMasuk = member.riwayatBulan[bulan] || 0;
+                                    const isLunas = uangMasuk >= member.tagihan && member.tagihan > 0;
+                                    
+                                    // Saring berdasarkan filter tombol status (Semua / Belum Bayar)
+                                    const matchStatus = this.filterStatus === 'semua' || (this.filterStatus === 'belum' && !isLunas);
+
+                                    if (matchStatus) {
+                                        hasilRender.push({
+                                            id: member.id,
+                                            nama: member.nama,
+                                            paket: member.paket,
+                                            tagihan: member.tagihan,
+                                            uangMasuk: uangMasuk,
+                                            lunas: isLunas,
+                                            bulanTarget: bulan // Mengunci target bulan per baris hasil cari
+                                        });
+                                    }
+                                });
+                            }
+                        });
+                    } 
+                    // KONDISI 2: TAMPILAN NORMAL HARIAN (Hanya tampil bulan aktif di dropdown)
+                    else {
+                        this.activeBills.forEach(member => {
+                            const uangMasuk = member.riwayatBulan[this.selectedMonth] || 0;
+                            const isLunas = uangMasuk >= member.tagihan && member.tagihan > 0;
+                            
+                            const matchStatus = this.filterStatus === 'semua' || (this.filterStatus === 'belum' && !isLunas);
+
+                            if (matchStatus) {
+                                hasilRender.push({
+                                    id: member.id,
+                                    nama: member.nama,
+                                    paket: member.paket,
+                                    tagihan: member.tagihan,
+                                    uangMasuk: uangMasuk,
+                                    lunas: isLunas,
+                                    bulanTarget: this.selectedMonth
+                                });
+                            }
+                        });
+                    }
+
+                    return hasilRender;
+                },
+
+                // Fungsi Klik Bayar: Mengisi nominal paket ke kolom bulan spesifik pada baris yang diklik
+                async toggleBayar(item) {
+                    const statusTarget = !item.lunas;
+                    
+                    // Ganti di UI lokal dulu secara kilat
+                    item.lunas = statusTarget; 
+                    item.uangMasuk = statusTarget ? item.tagihan : 0;
+
+                    // Sinkronkan ke database memori utama aplikasi agar angka rekap di atas ikut berubah
+                    let memberAsli = this.activeBills.find(m => m.id === item.id);
+                    if (memberAsli) {
+                        memberAsli.riwayatBulan[item.bulanTarget] = statusTarget ? item.tagihan : 0;
+                    }
+
+                    try {
+                        await fetch(WEB_APP_URL, {
+                            method: "POST",
+                            mode: "no-cors",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                                aksi: "update_status",
+                                id: item.id,
+                                bulan: item.bulanTarget, // Menembak kolom bulan spesifik (misal: "Mei")
+                                lunas: statusTarget
+                            })
+                        });
+                    } catch (error) {
+                        console.error("Gagal sinkronisasi data ke Google Sheets:", error);
+                        this.loadBulan(); // Muat ulang dari server jika gagal koneksi internet
+                    }
+                },
+
+                // Reset nilai kolom bulan berjalan di dropdown menjadi 0 untuk semua member
+                async generateMassal() {
+                    if (!confirm(`Apakah Anda yakin ingin me-reset (0) semua pembayaran untuk bulan ${this.selectedMonth}?`)) return;
+                    this.loading = true;
+                    try {
+                        await fetch(WEB_APP_URL, {
+                            method: "POST",
+                            mode: "no-cors",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                                aksi: "generate_massal",
+                                bulan: this.selectedMonth
+                            })
+                        });
+                        // Beri delay 1.5 detik agar mesin Google selesai memproses reset sebelum di-load ulang
+                        setTimeout(() => this.loadBulan(), 1500);
+                    } catch (error) {
+                        this.loading = false;
+                    }
+                },
+
+                // Hitung Rekapitulasi Keuangan Berdasarkan Bulan Dropdown Atas
+                totalMasuk() { 
+                    return this.activeBills.reduce((sum, m) => sum + (m.riwayatBulan[this.selectedMonth] || 0), 0); 
+                },
+                totalBelum() {
+                    return this.activeBills.reduce((sum, m) => {
+                        const masuk = m.riwayatBulan[this.selectedMonth] || 0;
+                        return sum + (masuk >= m.tagihan ? 0 : m.tagihan);
+                    }, 0);
+                },
+                totalTarget() { 
+                    return this.activeBills.reduce((sum, m) => sum + m.tagihan, 0); 
+                },
+                countBelum() {
+                    return this.activeBills.filter(m => {
+                        const masuk = m.riwayatBulan[this.selectedMonth] || 0;
+                        return masuk < m.tagihan;
+                    }).length;
+                },
+                formatRupiah(angka) { 
+                    return 'Rp ' + angka.toLocaleString('id-ID'); 
+                }
+            }
+        }
+    </script>
+</body>
+</html>
