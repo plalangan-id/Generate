@@ -1,373 +1,811 @@
 <!DOCTYPE html>
+
 <html lang="id">
+
 <head>
+
     <meta charset="UTF-8">
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>Multi Billing App - PLALANGAN.NET</title>
+
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
     <style>
+
         body {
+
             font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+
             background-color: #0f172a;
+
             color: #e2e8f0;
+
         }
+
         ::-webkit-scrollbar { width: 4px; height: 4px; }
+
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 2px; }
+
         [x-cloak] { display: none !important; }
+
     </style>
+
 </head>
+
 <body class="p-2 antialiased" x-data="billApp()" x-init="initData()">
 
+
+
     <nav class="mb-3 grid grid-cols-2 gap-2 bg-slate-800 p-1 rounded-lg border border-slate-700/60 shadow-sm">
+
         <button @click="switchTab('Sheet1')" 
+
                 :class="currentSheet === 'Sheet1' ? 'bg-blue-600 text-white font-bold' : 'text-slate-400 hover:text-slate-200'"
+
                 class="text-xs py-1.5 rounded transition-all uppercase tracking-wider text-center">
+
             🌐 Tagihan WiFi
+
         </button>
+
         <button @click="switchTab('Sheet2')" 
+
                 :class="currentSheet === 'Sheet2' ? 'bg-purple-600 text-white font-bold' : 'text-slate-400 hover:text-slate-200'"
+
                 class="text-xs py-1.5 rounded transition-all uppercase tracking-wider text-center">
+
             🏡 Iuran Kampung
+
         </button>
+
     </nav>
 
+
+
     <header class="mb-3 bg-slate-800 p-2.5 rounded-lg border border-slate-700 shadow-sm">
+
         <div class="flex justify-between items-center mb-2">
+
             <h1 class="text-xs font-bold tracking-wide uppercase" 
+
                 :class="currentSheet === 'Sheet1' ? 'text-emerald-400' : 'text-purple-400'"
+
                 x-text="currentSheet === 'Sheet1' ? 'Rekap Billing WiFi' : 'Rekap Iuran Kampung'">
+
             </h1>
+
             <select x-model="selectedMonth" @change="loadBulan()" class="bg-slate-900 border border-slate-600 text-[11px] rounded px-1.5 py-0.5 text-slate-200 font-medium focus:outline-none">
+
                 <option value="Januari">Januari</option>
+
                 <option value="Februari">Februari</option>
+
                 <option value="Maret">Maret</option>
+
                 <option value="April">April</option>
+
                 <option value="Mei">Mei</option>
+
                 <option value="Juni">Juni</option>
+
                 <option value="Juli">Juli</option>
+
                 <option value="Agustus">Agustus</option>
+
                 <option value="September">September</option>
+
                 <option value="Oktober">Oktober</option>
+
                 <option value="November">November</option>
+
                 <option value="Desember">Desember</option>
+
             </select>
+
         </div>
+
+
 
         <div class="grid grid-cols-3 gap-1.5 text-[11px]">
+
             <div class="bg-slate-950 p-1.5 rounded border-l-2 border-emerald-500">
+
                 <span class="text-slate-400 block text-[9px] uppercase font-semibold">Uang Masuk</span>
+
                 <span class="font-bold text-emerald-400" x-text="formatRupiah(totalMasuk())">Rp 0</span>
+
             </div>
+
             <div class="bg-slate-950 p-1.5 rounded border-l-2 border-rose-500">
+
                 <span class="text-slate-400 block text-[9px] uppercase font-semibold">Belum Bayar</span>
+
                 <span class="font-bold text-rose-400" x-text="formatRupiah(totalBelum())">Rp 0</span>
+
             </div>
+
             <div class="bg-slate-950 p-1.5 rounded border-l-2 border-blue-500">
+
                 <span class="text-slate-400 block text-[9px] uppercase font-semibold">Total Target</span>
+
                 <span class="font-bold text-blue-400" x-text="formatRupiah(totalTarget())">Rp 0</span>
+
             </div>
+
         </div>
+
     </header>
 
+
+
     <div class="mb-2 flex gap-2 justify-between items-center bg-slate-800/50 p-2 rounded-lg border border-slate-700/60">
+
         <div class="flex gap-1.5 items-center">
+
             <button @click="filterStatus = 'semua'" :class="filterStatus === 'semua' ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-300'" class="text-[10px] font-semibold px-2 py-0.5 rounded transition">Semua</button>
+
             <button @click="filterStatus = 'belum'" :class="filterStatus === 'belum' ? 'bg-rose-600 text-white border-rose-500' : 'bg-slate-700 text-slate-300'" class="text-[10px] font-semibold px-2 py-0.5 rounded transition flex items-center gap-1">
+
                 Belum Bayar <span class="bg-slate-900/60 text-rose-300 px-1 rounded-sm text-[9px]" x-text="countBelum()">0</span>
+
             </button>
+
         </div>
+
         <button @click="generateMassal()" :disabled="loading" class="bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold text-[10px] px-2.5 py-1 rounded shadow transition flex items-center gap-1 disabled:opacity-50">
+
             <span x-show="!loading">⚡ Reset Bulan Ini</span>
+
             <span x-show="loading">Proses...</span>
+
         </button>
+
     </div>
+
+
 
     <main class="bg-slate-800 rounded-lg border border-slate-700 shadow-md overflow-hidden mb-3">
+
         <div class="p-1.5 bg-slate-900/50 border-b border-slate-700">
+
             <input type="text" x-model="searchQuery" placeholder="Cari nama member..." class="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500">
+
         </div>
+
+
 
         <div class="overflow-x-auto relative">
+
             <div x-show="loading" class="absolute inset-0 bg-slate-900/80 flex items-center justify-center text-xs text-emerald-400 font-semibold z-10">
+
                 Memuat Data Google Sheets...
+
             </div>
+
+
 
             <table class="w-full text-left border-collapse">
+
                 <thead>
+
                     <tr class="bg-slate-900 text-slate-400 uppercase text-[9px] font-bold tracking-wider border-b border-slate-700">
+
                         <th class="py-1.5 px-2 text-center w-8">No</th>
+
                         <th class="py-1.5 px-2">Nama Member</th>
+
                         <th class="py-1.5 px-2 text-right">Tagihan</th>
+
                         <th class="py-1.5 px-2 text-center w-20">Status</th>
+
                     </tr>
+
                 </thead>
+
                 <tbody class="divide-y divide-slate-700/40 text-xs">
+
                     <template x-for="(item, index) in filteredMembers()" :key="item.id + '_' + item.bulanTarget + '_' + currentSheet">
+
                         <tr class="hover:bg-slate-700/20 transition-colors" :class="item.lunas ? 'bg-emerald-950/10' : 'bg-rose-950/10'">
+
                             <td class="py-1 px-2 text-center text-slate-500 font-mono text-[11px]" x-text="index + 1"></td>
+
                             <td class="py-1 px-2 font-medium text-slate-200 truncate max-w-[140px]">
+
                                 <span class="font-semibold" x-text="item.nama"></span>
+
                                 <span x-show="searchQuery.trim() !== ''" class="inline-block bg-slate-950 text-amber-400 font-bold text-[9px] px-1 rounded ml-1 uppercase" x-text="item.bulanTarget"></span>
+
                                 <span class="block text-[9px] text-slate-400 font-normal" x-text="item.paket"></span>
+
                             </td>
+
                             <td class="py-1 px-2 text-right font-mono text-[11px] text-slate-300 font-semibold" x-text="formatRupiah(item.lunas ? item.uangMasuk : item.tagihan)"></td>
+
                             <td class="py-1 px-2 text-center">
+
                                 <button @click="toggleBayar(item)" 
+
                                         :class="item.lunas ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border-rose-500/30'"
+
                                         class="w-full text-[10px] font-bold py-0.5 px-1 rounded border transition-all active:scale-95"
+
                                         x-text="item.lunas ? 'LUNAS' : 'BAYAR'">
+
                                 </button>
+
                             </td>
+
                         </tr>
+
                     </template>
+
                     <template x-if="filteredMembers().length === 0 && !loading">
+
                         <tr>
+
                             <td colspan="4" class="py-4 text-center text-xs text-slate-500 italic">Data tidak ditemukan.</td>
+
                         </tr>
+
                     </template>
+
                 </tbody>
+
             </table>
+
         </div>
+
     </main>
 
+
+
     <div id="additional-features" class="space-y-2">
+
         <button @click="showPreview = true" :disabled="loading || filteredMembers().length === 0" class="w-full bg-slate-700 hover:bg-slate-600 active:scale-98 text-slate-200 font-bold text-xs py-2 rounded-lg border border-slate-600 shadow transition flex items-center justify-center gap-1.5 disabled:opacity-50">
+
             👁️ Pratinjau & Simpan Laporan PDF
+
         </button>
+
     </div>
+
+
 
     <div x-show="showPreview" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-2 z-50 overflow-y-auto" x-cloak>
+
         <div class="bg-slate-900 border border-slate-700 p-3 rounded-xl w-full max-w-4xl shadow-2xl my-auto">
+
             
+
             <div class="flex justify-between items-center pb-2 mb-2 border-b border-slate-700">
+
                 <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider">Pratinjau Dokumen A4 Landscape</h3>
+
                 <div class="flex gap-2">
-                    <button @click="executeBukuTamuPrint()" class="bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-bold px-3 py-1 rounded shadow-sm transition">
+
+                    <button @click="executeSavePDF()" class="bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-bold px-3 py-1 rounded shadow-sm transition">
+
                         💾 Save PDF
+
                     </button>
+
                     <button @click="showPreview = false" class="bg-slate-700 hover:bg-slate-600 text-slate-300 text-[11px] font-bold px-3 py-1 rounded border border-slate-600 transition">
+
                         Tutup
+
                     </button>
+
                 </div>
+
             </div>
+
+
 
             <div class="overflow-x-auto bg-slate-950 p-2 rounded border border-slate-800 max-h-[70vh]">
+
                 <div class="text-black p-4 bg-white mx-auto shadow" style="font-family: Arial, sans-serif; width: 1000px; min-height: 400px;">
+
                     <div class="border-b-2 border-black pb-1 mb-2 flex justify-between items-end">
+
                         <div>
+
                             <h2 class="text-sm font-bold uppercase" x-text="currentSheet === 'Sheet1' ? 'LAPORAN TAGIHAN WIFI - PLALANGAN.NET' : 'LAPORAN IURAN BULANAN KAMPUNG'"></h2>
+
                             <p class="text-[9px] text-gray-600 font-medium">Periode: <span class="font-bold text-black" x-text="selectedMonth + ' 2026'"></span></p>
+
                         </div>
+
                         <div class="text-right text-[9px] font-mono font-bold">
+
                             <div>Uang Masuk: <span x-text="formatRupiah(totalMasuk())"></span></div>
+
                             <div>Tunggakan: <span x-text="formatRupiah(totalBelum())"></span></div>
+
                         </div>
+
                     </div>
+
                     <p class="text-xs text-slate-600 italic text-center py-10">Dokumen laporan siap diunduh. Silakan klik tombol **Save PDF** di atas.</p>
+
                 </div>
+
             </div>
 
+
+
         </div>
+
     </div>
 
+
+
+
+
+    <div style="position: absolute; left: -9999px; top: -9999px;">
+
+        <div id="hidden-pdf-print" class="text-black p-6 bg-white" style="font-family: Arial, sans-serif; width: 1045px; box-sizing: border-box;">
+
+            
+
+            <div class="border-b-2 border-black pb-1 mb-3 flex justify-between items-end">
+
+                <div>
+
+                    <h2 class="text-base font-bold uppercase" style="margin:0; padding:0;" x-text="currentSheet === 'Sheet1' ? 'LAPORAN TAGIHAN WIFI - PLALANGAN.NET' : 'LAPORAN IURAN BULANAN KAMPUNG'"></h2>
+
+                    <p class="text-[10px] text-gray-600" style="margin:2px 0 0 0;">Periode Bulan: <span class="font-bold text-black" x-text="selectedMonth + ' 2026'"></span> | Status Laporan: <span class="font-bold text-black uppercase" x-text="filterStatus"></span></p>
+
+                </div>
+
+                <div class="text-right text-[10px] font-mono font-bold leading-tight">
+
+                    <div>Total Masuk: <span x-text="formatRupiah(totalMasuk())"></span></div>
+
+                    <div>Total Tunggakan: <span x-text="formatRupiah(totalBelum())"></span></div>
+
+                </div>
+
+            </div>
+
+
+
+            <div class="grid grid-cols-2 gap-6">
+
+                <div>
+
+                    <table class="w-full border-collapse text-[9px]" style="border: 1px solid black;">
+
+                        <thead>
+
+                            <tr class="bg-gray-200 font-bold">
+
+                                <th style="border: 1px solid black; padding: 3px;" class="text-center w-6">No</th>
+
+                                <th style="border: 1px solid black; padding: 3px;" class="text-left">Nama Member</th>
+
+                                <th style="border: 1px solid black; padding: 3px;" class="text-right w-20">Jumlah</th>
+
+                                <th style="border: 1px solid black; padding: 3px;" class="text-center w-14">Status</th>
+
+                            </tr>
+
+                        </thead>
+
+                        <tbody>
+
+                            <template x-for="(item, index) in filteredMembers().slice(0, 35)">
+
+                                <tr>
+
+                                    <td style="border: 1px solid black; padding: 2px;" class="text-center font-mono" x-text="index + 1"></td>
+
+                                    <td style="border: 1px solid black; padding: 2px;" class="font-medium truncate" x-text="item.nama + (searchQuery.trim() !== '' ? ' ('+item.bulanTarget+')' : '')"></td>
+
+                                    <td style="border: 1px solid black; padding: 2px;" class="text-right font-mono" x-text="formatRupiah(item.lunas ? item.uangMasuk : item.tagihan)"></td>
+
+                                    <td style="border: 1px solid black; padding: 2px;" class="text-center font-bold" :class="item.lunas ? 'text-green-700' : 'text-red-600'" x-text="item.lunas ? 'LUNAS' : 'BELUM'"></td>
+
+                                </tr>
+
+                            </template>
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+
+
+                <div>
+
+                    <table class="w-full border-collapse text-[9px]" style="border: 1px solid black;">
+
+                        <thead>
+
+                            <tr class="bg-gray-200 font-bold">
+
+                                <th style="border: 1px solid black; padding: 3px;" class="text-center w-6">No</th>
+
+                                <th style="border: 1px solid black; padding: 3px;" class="text-left">Nama Member</th>
+
+                                <th style="border: 1px solid black; padding: 3px;" class="text-right w-20">Jumlah</th>
+
+                                <th style="border: 1px solid black; padding: 3px;" class="text-center w-14">Status</th>
+
+                            </tr>
+
+                        </thead>
+
+                        <tbody>
+
+                            <template x-for="(item, index) in filteredMembers().slice(35, 70)">
+
+                                <tr>
+
+                                    <td style="border: 1px solid black; padding: 2px;" class="text-center font-mono" x-text="index + 36"></td>
+
+                                    <td style="border: 1px solid black; padding: 2px;" class="font-medium truncate" x-text="item.nama + (searchQuery.trim() !== '' ? ' ('+item.bulanTarget+')' : '')"></td>
+
+                                    <td style="border: 1px solid black; padding: 2px;" class="text-right font-mono" x-text="formatRupiah(item.lunas ? item.uangMasuk : item.tagihan)"></td>
+
+                                    <td style="border: 1px solid black; padding: 2px;" class="text-center font-bold" :class="item.lunas ? 'text-green-700' : 'text-red-600'" x-text="item.lunas ? 'LUNAS' : 'BELUM'"></td>
+
+                                </tr>
+
+                            </template>
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </div>
+
+
+
+        </div>
+
+    </div>
+
+
+
+
+
     <script>
+
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxyQyxZ2jNdxbs_A1KtgZfvp2tnbJU56jq_G_XvTyo_hFOwvZRyrlPjSMCbXzJaBmnv/exec";
 
+
+
         function billApp() {
+
             return {
+
                 currentSheet: 'Sheet1', 
+
                 selectedMonth: 'Mei', 
+
                 filterStatus: 'semua',
+
                 searchQuery: '',
+
                 activeBills: [],
+
                 loading: false,
+
                 showPreview: false,
+
+
 
                 listBulan: ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"],
 
-                initData() { this.loadBulan(); },
-                switchTab(sheetName) {
-                    this.currentSheet = sheetName;
-                    this.searchQuery = '';
+
+
+                initData() {
+
                     this.loadBulan();
+
                 },
+
+
+
+                switchTab(sheetName) {
+
+                    this.currentSheet = sheetName;
+
+                    this.searchQuery = '';
+
+                    this.loadBulan();
+
+                },
+
+
 
                 async loadBulan() {
+
                     if(!WEB_APP_URL || WEB_APP_URL.includes("ISI_DENGAN_URL")) return;
+
                     this.loading = true;
+
                     try {
+
                         const response = await fetch(`${WEB_APP_URL}?bulan=semua&sheetName=${this.currentSheet}`);
+
                         this.activeBills = await response.json();
+
                     } catch (error) {
+
                         console.error("Gagal memuat data:", error);
+
                         this.activeBills = [];
-                    } finally { this.loading = false; }
+
+                    } finally {
+
+                        this.loading = false;
+
+                    }
+
                 },
+
+
 
                 filteredMembers() {
+
                     let hasilRender = [];
+
+
+
                     if (this.searchQuery.trim() !== '') {
+
                         const query = this.searchQuery.toLowerCase();
+
                         this.activeBills.forEach(member => {
+
                             if (member.nama.toLowerCase().includes(query)) {
+
                                 this.listBulan.forEach(bulan => {
+
                                     const uangMasuk = member.riwayatBulan[bulan] || 0;
+
                                     const isLunas = uangMasuk >= member.tagihan && member.tagihan > 0;
+
                                     const matchStatus = this.filterStatus === 'semua' || (this.filterStatus === 'belum' && !isLunas);
+
+
+
                                     if (matchStatus) {
-                                        hasilRender.push({ id: member.id, nama: member.nama, paket: member.paket, tagihan: member.tagihan, uangMasuk: uangMasuk, lunas: isLunas, bulanTarget: bulan });
+
+                                        hasilRender.push({
+
+                                            id: member.id, nama: member.nama, paket: member.paket, tagihan: member.tagihan, uangMasuk: uangMasuk, lunas: isLunas, bulanTarget: bulan
+
+                                        });
+
                                     }
+
                                 });
+
                             }
+
                         });
+
                     } else {
+
                         this.activeBills.forEach(member => {
+
                             const uangMasuk = member.riwayatBulan[this.selectedMonth] || 0;
+
                             const isLunas = uangMasuk >= member.tagihan && member.tagihan > 0;
+
                             const matchStatus = this.filterStatus === 'semua' || (this.filterStatus === 'belum' && !isLunas);
+
+
+
                             if (matchStatus) {
-                                hasilRender.push({ id: member.id, nama: member.nama, paket: member.paket, tagihan: member.tagihan, uangMasuk: uangMasuk, lunas: isLunas, bulanTarget: this.selectedMonth });
+
+                                hasilRender.push({
+
+                                    id: member.id, nama: member.nama, paket: member.paket, tagihan: member.tagihan, uangMasuk: uangMasuk, lunas: isLunas, bulanTarget: this.selectedMonth
+
+                                });
+
                             }
+
                         });
+
                     }
+
                     return hasilRender;
+
                 },
+
+
 
                 async toggleBayar(item) {
+
                     const statusTarget = !item.lunas;
+
                     item.lunas = statusTarget; 
+
                     item.uangMasuk = statusTarget ? item.tagihan : 0;
+
+
+
                     let memberAsli = this.activeBills.find(m => m.id === item.id);
-                    if (memberAsli) { memberAsli.riwayatBulan[item.bulanTarget] = statusTarget ? item.tagihan : 0; }
+
+                    if (memberAsli) {
+
+                        memberAsli.riwayatBulan[item.bulanTarget] = statusTarget ? item.tagihan : 0;
+
+                    }
+
+
+
                     try {
+
                         await fetch(WEB_APP_URL, {
-                            method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ aksi: "update_status", sheetName: this.currentSheet, id: item.id, bulan: item.bulanTarget, lunas: statusTarget })
+
+                            method: "POST",
+
+                            mode: "no-cors",
+
+                            headers: { "Content-Type": "application/json" },
+
+                            body: JSON.stringify({
+
+                                aksi: "update_status",
+
+                                sheetName: this.currentSheet,
+
+                                id: item.id,
+
+                                bulan: item.bulanTarget,
+
+                                lunas: statusTarget
+
+                            })
+
                         });
-                    } catch (error) { console.error("Gagal simpan data:", error); this.loadBulan(); }
+
+                    } catch (error) {
+
+                        console.error("Gagal simpan data:", error);
+
+                        this.loadBulan();
+
+                    }
+
                 },
+
+
 
                 async generateMassal() {
+
                     if (!confirm(`Reset (0) semua pembayaran bulan ${this.selectedMonth} pada ${this.currentSheet === 'Sheet1' ? 'Tagihan WiFi' : 'Iuran Kampung'}?`)) return;
+
                     this.loading = true;
+
                     try {
+
                         await fetch(WEB_APP_URL, {
-                            method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ aksi: "generate_massal", sheetName: this.currentSheet, bulan: this.selectedMonth })
+
+                            method: "POST",
+
+                            mode: "no-cors",
+
+                            headers: { "Content-Type": "application/json" },
+
+                            body: JSON.stringify({
+
+                                aksi: "generate_massal",
+
+                                sheetName: this.currentSheet,
+
+                                bulan: this.selectedMonth
+
+                            })
+
                         });
+
                         setTimeout(() => this.loadBulan(), 1500);
-                    } catch (error) { this.loading = false; }
+
+                    } catch (error) {
+
+                        this.loading = false;
+
+                    }
+
                 },
 
-                // ===================================================================
-                // PROSES KUNCI UTAMA: ADOPSI LOGIKA EMAS BUKU TAMU DIGITAL
-                // ===================================================================
-                executeBukuTamuPrint() {
-                    const dataRender = this.filteredMembers();
-                    const judulLaporan = this.currentSheet === 'Sheet1' ? 'LAPORAN TAGIHAN WIFI - PLALANGAN.NET' : 'LAPORAN IURAN BULANAN KAMPUNG';
+
+
+                // EKSEKUSI PENYELAMATAN: CETAK ELEMEN YANG BERADA DI LUAR KENDALI MODAL (GARANSI ANTI-BLANK)
+
+                executeSavePDF() {
+
+                    const printTarget = document.getElementById('hidden-pdf-print');
+
+                    const namaFile = this.currentSheet === 'Sheet1' ? 'WiFi' : 'Kampung';
+
                     
-                    // Kunci Matriks: Bagi rata 50 baris Kiri & 50 baris Kanan agar genap 100 User muat 1 Lembar Pas!
-                    const dataKiri = dataRender.slice(0, 50);
-                    const dataKanan = dataRender.slice(50, 100);
 
-                    // Menyusun baris teks tabel kolom kiri (1 - 50) dari RAM memori JS
-                    let htmlKiri = '';
-                    dataKiri.forEach((item, index) => {
-                        const lblBulan = this.searchQuery.trim() !== '' ? ` (${item.bulanTarget})` : '';
-                        const stText = item.lunas ? '<b style="color:green;">LUNAS</b>' : '<b style="color:red;">BELUM</b>';
-                        htmlKiri += `
-                            <tr style="font-size: 8px;">
-                                <td style="text-align:center; font-family:monospace; border:1px solid #000; padding:1px 3px;">${index + 1}</td>
-                                <td style="border:1px solid #000; padding:1px 3px;"><b>${item.nama}</b>${lblBulan}</td>
-                                <td style="text-align:right; font-family:monospace; border:1px solid #000; padding:1px 3px;">${this.formatRupiah(item.lunas ? item.uangMasuk : item.tagihan)}</td>
-                                <td style="text-align:center; border:1px solid #000; padding:1px 3px;">${stText}</td>
-                            </tr>
-                        `;
-                    });
+                    const konfigurasiCetak = {
 
-                    // Menyusun baris teks tabel kolom kanan (51 - 100) dari RAM memori JS
-                    let htmlKanan = '';
-                    dataKanan.forEach((item, index) => {
-                        const lblBulan = this.searchQuery.trim() !== '' ? ` (${item.bulanTarget})` : '';
-                        const stText = item.lunas ? '<b style="color:green;">LUNAS</b>' : '<b style="color:red;">BELUM</b>';
-                        htmlKanan += `
-                            <tr style="font-size: 8px;">
-                                <td style="text-align:center; font-family:monospace; border:1px solid #000; padding:1px 3px;">${index + 51}</td>
-                                <td style="border:1px solid #000; padding:1px 3px;"><b>${item.nama}</b>${lblBulan}</td>
-                                <td style="text-align:right; font-family:monospace; border:1px solid #000; padding:1px 3px;">${this.formatRupiah(item.lunas ? item.uangMasuk : item.tagihan)}</td>
-                                <td style="text-align:center; border:1px solid #000; padding:1px 3px;">${stText}</td>
-                            </tr>
-                        `;
-                    });
+                        margin:       0.2,
 
-                    // Eksekusi buka jendela cetak kosong tab baru di browser HP
-                    const w = window.open('', '_blank');
-                    
-                    // Suntik string HTML teks bersih berlatar putih dengan setelan font 8px rapat
-                    w.document.write(`
-                        <html>
-                        <head>
-                            <title>Cetak Laporan</title>
-                            <style>
-                                @page { size: a4 landscape; margin: 0.25in; }
-                                body { font-family: Arial, sans-serif; background:#fff; color:#000; margin:0; padding:0; font-size:9.5px; }
-                                .head-pdf { border-bottom: 2px solid #000; padding-bottom:3px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:flex-end; }
-                                .container { display:flex; gap:15px; }
-                                .col { flex:1; }
-                                table { width:100%; border-collapse:collapse; }
-                                th { background:#f2f2f2; border:1px solid #000; padding:3px; text-align:left; font-size:9px; text-transform:uppercase; font-weight:bold; }
-                            </style>
-                        </head>
-                        <body>
-                            <div class="head-pdf">
-                                <div>
-                                    <h2 style="margin:0; font-size:13px; text-transform:uppercase;">${judulLaporan}</h2>
-                                    <p style="margin:2px 0 0 0; color:#333;">Periode Bulan: <b>${this.selectedMonth} 2026</b> | Status: <b>${this.filterStatus.toUpperCase()}</b></p>
-                                </div>
-                                <div style="text-align:right; font-family:monospace; font-weight:bold; font-size:10.5px; line-height:1.2;">
-                                    <div>Total Masuk: ${this.formatRupiah(this.totalMasuk())}</div>
-                                    <div>Total Tunggakan: ${this.formatRupiah(this.totalBelum())}</div>
-                                </div>
-                            </div>
-                            <div class="container">
-                                <div class="col">
-                                    <table>
-                                        <thead><tr><th style="text-align:center;width:25px;">No</th><th>Nama Member</th><th style="text-align:right;width:75px;">Jumlah</th><th style="text-align:center;width:50px;">Status</th></tr></thead>
-                                        <tbody>${htmlKiri}</tbody>
-                                    </table>
-                                </div>
-                                <div class="col">
-                                    <table>
-                                        <thead><tr><th style="text-align:center;width:25px;">No</th><th>Nama Member</th><th style="text-align:right;width:75px;">Jumlah</th><th style="text-align:center;width:50px;">Status</th></tr></thead>
-                                        <tbody>${htmlKanan}</tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </body>
-                        </html>
-                    `);
-                    w.document.close();
+                        filename:     `Laporan_${namaFile}_${this.selectedMonth}.pdf`,
 
-                    // Memicu sistem cetak / simpan ke PDF resmi bawaan HP Android/iOS
+                        image:        { type: 'jpeg', quality: 0.98 },
+
+                        html2canvas:  { scale: 2, logging: false, useCORS: true },
+
+                        jsPDF:        { unit: 'in', format: 'a4', orientation: 'landscape' }
+
+                    };
+
+
+
+                    // Kasih delay tipis 300ms agar browser tenang, lalu langsung download
+
                     setTimeout(() => {
-                        w.print();
-                        this.showPreview = false;
-                    }, 400);
+
+                        html2pdf().set(konfigurasiCetak).from(printTarget).save().then(() => {
+
+                            this.showPreview = false; // Tutup pop-up pratinjau setelah sukses
+
+                        });
+
+                    }, 300);
+
                 },
+
+
 
                 totalMasuk() { return this.activeBills.reduce((sum, m) => sum + (m.riwayatBulan[this.selectedMonth] || 0), 0); },
+
                 totalBelum() {
+
                     return this.activeBills.reduce((sum, m) => {
+
                         const masuk = m.riwayatBulan[this.selectedMonth] || 0;
+
                         return sum + (masuk >= m.tagihan ? 0 : m.tagihan);
+
                     }, 0);
+
                 },
+
                 totalTarget() { return this.activeBills.reduce((sum, m) => sum + m.tagihan, 0); },
-                countBelum() { return this.activeBills.filter(m => (m.riwayatBulan[this.selectedMonth] || 0) < m.tagihan).length; },
+
+                countBelum() {
+
+                    return this.activeBills.filter(m => {
+
+                        const masuk = m.riwayatBulan[this.selectedMonth] || 0;
+
+                        return masuk < m.tagihan;
+
+                    }).length;
+
+                },
+
                 formatRupiah(angka) { return 'Rp ' + angka.toLocaleString('id-ID'); }
+
             }
+
         }
+
     </script>
+
 </body>
+
 </html>
