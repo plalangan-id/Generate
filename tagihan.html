@@ -154,72 +154,90 @@
             </div>
 
             <div class="overflow-x-auto bg-slate-950 p-2 rounded border border-slate-800 max-h-[70vh]">
-                <div id="pdf-template" class="text-black p-4 bg-white mx-auto shadow" style="font-family: Arial, sans-serif; width: 1000px; min-height: 500px;">
-                    
+                <div class="text-black p-4 bg-white mx-auto shadow" style="font-family: Arial, sans-serif; width: 1000px; min-height: 400px;">
                     <div class="border-b-2 border-black pb-1 mb-2 flex justify-between items-end">
                         <div>
                             <h2 class="text-sm font-bold uppercase" x-text="currentSheet === 'Sheet1' ? 'LAPORAN TAGIHAN WIFI - PLALANGAN.NET' : 'LAPORAN IURAN BULANAN KAMPUNG'"></h2>
-                            <p class="text-[9px] text-gray-600 font-medium">Periode Bulan: <span class="font-bold text-black" x-text="selectedMonth + ' 2026'"></span> | Status Data: <span class="font-bold text-black uppercase" x-text="filterStatus"></span></p>
+                            <p class="text-[9px] text-gray-600 font-medium">Periode: <span class="font-bold text-black" x-text="selectedMonth + ' 2026'"></span></p>
                         </div>
-                        <div class="text-right text-[9px] font-mono font-bold leading-tight">
-                            <div>Total Masuk: <span x-text="formatRupiah(totalMasuk())"></span></div>
-                            <div>Total Tunggakan: <span x-text="formatRupiah(totalBelum())"></span></div>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <table class="w-full border-collapse text-[8.5px]">
-                                <thead>
-                                    <tr class="bg-gray-200 border border-black font-bold">
-                                        <th class="border border-black p-0.5 text-center w-6">No</th>
-                                        <th class="border border-black p-0.5 text-left">Nama Member</th>
-                                        <th class="border border-black p-0.5 text-right w-16">Jumlah</th>
-                                        <th class="border border-black p-0.5 text-center w-12">Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <template x-for="(item, index) in filteredMembers().slice(0, 35)">
-                                        <tr class="border border-black">
-                                            <td class="border border-black p-0.5 text-center font-mono" x-text="index + 1"></td>
-                                            <td class="border border-black p-0.5 font-medium truncate" x-text="item.nama + (searchQuery.trim() !== '' ? ' ('+item.bulanTarget+')' : '')"></td>
-                                            <td class="border border-black p-0.5 text-right font-mono" x-text="formatRupiah(item.lunas ? item.uangMasuk : item.tagihan)"></td>
-                                            <td class="border border-black p-0.5 text-center font-bold" :class="item.lunas ? 'text-green-700' : 'text-red-600'" x-text="item.lunas ? 'LUNAS' : 'BELUM'"></td>
-                                        </tr>
-                                    </template>
-                                </tbody>
-                            </table>
-                        </div>
-
-                        <div>
-                            <table class="w-full border-collapse text-[8.5px]">
-                                <thead>
-                                    <tr class="bg-gray-200 border border-black font-bold">
-                                        <th class="border border-black p-0.5 text-center w-6">No</th>
-                                        <th class="border border-black p-0.5 text-left">Nama Member</th>
-                                        <th class="border border-black p-0.5 text-right w-16">Jumlah</th>
-                                        <th class="border border-black p-0.5 text-center w-12">Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <template x-for="(item, index) in filteredMembers().slice(35, 70)">
-                                        <tr class="border border-black">
-                                            <td class="border border-black p-0.5 text-center font-mono" x-text="index + 36"></td>
-                                            <td class="border border-black p-0.5 font-medium truncate" x-text="item.nama + (searchQuery.trim() !== '' ? ' ('+item.bulanTarget+')' : '')"></td>
-                                            <td class="border border-black p-0.5 text-right font-mono" x-text="formatRupiah(item.lunas ? item.uangMasuk : item.tagihan)"></td>
-                                            <td class="border border-black p-0.5 text-center font-bold" :class="item.lunas ? 'text-green-700' : 'text-red-600'" x-text="item.lunas ? 'LUNAS' : 'BELUM'"></td>
-                                        </tr>
-                                    </template>
-                                </tbody>
-                            </table>
+                        <div class="text-right text-[9px] font-mono font-bold">
+                            <div>Uang Masuk: <span x-text="formatRupiah(totalMasuk())"></span></div>
+                            <div>Tunggakan: <span x-text="formatRupiah(totalBelum())"></span></div>
                         </div>
                     </div>
-
+                    <p class="text-xs text-slate-600 italic text-center py-10">Dokumen laporan siap diunduh. Silakan klik tombol **Save PDF** di atas.</p>
                 </div>
             </div>
 
         </div>
     </div>
+
+
+    <div style="position: absolute; left: -9999px; top: -9999px;">
+        <div id="hidden-pdf-print" class="text-black p-6 bg-white" style="font-family: Arial, sans-serif; width: 1045px; box-sizing: border-box;">
+            
+            <div class="border-b-2 border-black pb-1 mb-3 flex justify-between items-end">
+                <div>
+                    <h2 class="text-base font-bold uppercase" style="margin:0; padding:0;" x-text="currentSheet === 'Sheet1' ? 'LAPORAN TAGIHAN WIFI - PLALANGAN.NET' : 'LAPORAN IURAN BULANAN KAMPUNG'"></h2>
+                    <p class="text-[10px] text-gray-600" style="margin:2px 0 0 0;">Periode Bulan: <span class="font-bold text-black" x-text="selectedMonth + ' 2026'"></span> | Status Laporan: <span class="font-bold text-black uppercase" x-text="filterStatus"></span></p>
+                </div>
+                <div class="text-right text-[10px] font-mono font-bold leading-tight">
+                    <div>Total Masuk: <span x-text="formatRupiah(totalMasuk())"></span></div>
+                    <div>Total Tunggakan: <span x-text="formatRupiah(totalBelum())"></span></div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-6">
+                <div>
+                    <table class="w-full border-collapse text-[9px]" style="border: 1px solid black;">
+                        <thead>
+                            <tr class="bg-gray-200 font-bold">
+                                <th style="border: 1px solid black; padding: 3px;" class="text-center w-6">No</th>
+                                <th style="border: 1px solid black; padding: 3px;" class="text-left">Nama Member</th>
+                                <th style="border: 1px solid black; padding: 3px;" class="text-right w-20">Jumlah</th>
+                                <th style="border: 1px solid black; padding: 3px;" class="text-center w-14">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template x-for="(item, index) in filteredMembers().slice(0, 35)">
+                                <tr>
+                                    <td style="border: 1px solid black; padding: 2px;" class="text-center font-mono" x-text="index + 1"></td>
+                                    <td style="border: 1px solid black; padding: 2px;" class="font-medium truncate" x-text="item.nama + (searchQuery.trim() !== '' ? ' ('+item.bulanTarget+')' : '')"></td>
+                                    <td style="border: 1px solid black; padding: 2px;" class="text-right font-mono" x-text="formatRupiah(item.lunas ? item.uangMasuk : item.tagihan)"></td>
+                                    <td style="border: 1px solid black; padding: 2px;" class="text-center font-bold" :class="item.lunas ? 'text-green-700' : 'text-red-600'" x-text="item.lunas ? 'LUNAS' : 'BELUM'"></td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div>
+                    <table class="w-full border-collapse text-[9px]" style="border: 1px solid black;">
+                        <thead>
+                            <tr class="bg-gray-200 font-bold">
+                                <th style="border: 1px solid black; padding: 3px;" class="text-center w-6">No</th>
+                                <th style="border: 1px solid black; padding: 3px;" class="text-left">Nama Member</th>
+                                <th style="border: 1px solid black; padding: 3px;" class="text-right w-20">Jumlah</th>
+                                <th style="border: 1px solid black; padding: 3px;" class="text-center w-14">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template x-for="(item, index) in filteredMembers().slice(35, 70)">
+                                <tr>
+                                    <td style="border: 1px solid black; padding: 2px;" class="text-center font-mono" x-text="index + 36"></td>
+                                    <td style="border: 1px solid black; padding: 2px;" class="font-medium truncate" x-text="item.nama + (searchQuery.trim() !== '' ? ' ('+item.bulanTarget+')' : '')"></td>
+                                    <td style="border: 1px solid black; padding: 2px;" class="text-right font-mono" x-text="formatRupiah(item.lunas ? item.uangMasuk : item.tagihan)"></td>
+                                    <td style="border: 1px solid black; padding: 2px;" class="text-center font-bold" :class="item.lunas ? 'text-green-700' : 'text-red-600'" x-text="item.lunas ? 'LUNAS' : 'BELUM'"></td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
 
     <script>
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxyQyxZ2jNdxbs_A1KtgZfvp2tnbJU56jq_G_XvTyo_hFOwvZRyrlPjSMCbXzJaBmnv/exec";
@@ -345,26 +363,12 @@
                     }
                 },
 
-                // SOLUSI MUTLAK: METODE KLONING ELEMEN DI MEMORI ASLI BIAR TIDAK BLANK / PUTIH POLOS
+                // EKSEKUSI PENYELAMATAN: CETAK ELEMEN YANG BERADA DI LUAR KENDALI MODAL (GARANSI ANTI-BLANK)
                 executeSavePDF() {
-                    // 1. Ambil target elemen pratinjau asli
-                    const originalNode = document.getElementById('pdf-template');
-                    
-                    // 2. Kloning elemen secara mendalam beserta data teks di dalamnya ke memori RAM
-                    const clonedNode = originalNode.cloneNode(true);
-                    
-                    // 3. Paksa hapus kelas utilitas tersembunyi/CSS modal di elemen klon agar terbaca terang oleh canvas
-                    clonedNode.style.display = 'block';
-                    clonedNode.style.position = 'absolute';
-                    clonedNode.style.top = '-9999px'; // Kita taruh jauh di luar koordinat pandangan layar HP
-                    clonedNode.style.left = '-9999px';
-                    
-                    // 4. Tempelkan sementara dokumen klon ke body halaman utama
-                    document.body.appendChild(clonedNode);
-
+                    const printTarget = document.getElementById('hidden-pdf-print');
                     const namaFile = this.currentSheet === 'Sheet1' ? 'WiFi' : 'Kampung';
                     
-                    const konfigurasiSave = {
+                    const konfigurasiCetak = {
                         margin:       0.2,
                         filename:     `Laporan_${namaFile}_${this.selectedMonth}.pdf`,
                         image:        { type: 'jpeg', quality: 0.98 },
@@ -372,12 +376,12 @@
                         jsPDF:        { unit: 'in', format: 'a4', orientation: 'landscape' }
                     };
 
-                    // 5. Eksekusi penyimpanan PDF menggunakan elemen klon yang datanya stabil dan bersih
-                    html2pdf().set(konfigurasiSave).from(clonedNode).save().then(() => {
-                        // 6. Setelah PDF berhasil terunduh, langsung hancurkan elemen klon dari body agar RAM HP enteng kembali
-                        document.body.removeChild(clonedNode);
-                        this.showPreview = false; // Tutup jendela modal pop-up pratinjau
-                    });
+                    // Kasih delay tipis 300ms agar browser tenang, lalu langsung download
+                    setTimeout(() => {
+                        html2pdf().set(konfigurasiCetak).from(printTarget).save().then(() => {
+                            this.showPreview = false; // Tutup pop-up pratinjau setelah sukses
+                        });
+                    }, 300);
                 },
 
                 totalMasuk() { return this.activeBills.reduce((sum, m) => sum + (m.riwayatBulan[this.selectedMonth] || 0), 0); },
