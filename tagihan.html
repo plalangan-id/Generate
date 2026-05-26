@@ -6,6 +6,7 @@
     <title>Multi Billing App - PLALANGAN.NET</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         body {
             font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -132,10 +133,111 @@
     </main>
 
     <div id="additional-features" class="space-y-2">
-        <button @click="printLaporanBukuTamu()" :disabled="loading || filteredMembers().length === 0" class="w-full bg-slate-700 hover:bg-slate-600 active:scale-98 text-slate-200 font-bold text-xs py-2 rounded-lg border border-slate-600 shadow transition flex items-center justify-center gap-1.5 disabled:opacity-50">
-            🖨️ Cetak / Save PDF via Tab Baru (Anti-Blank)
+        <button @click="showPreview = true" :disabled="loading || filteredMembers().length === 0" class="w-full bg-slate-700 hover:bg-slate-600 active:scale-98 text-slate-200 font-bold text-xs py-2 rounded-lg border border-slate-600 shadow transition flex items-center justify-center gap-1.5 disabled:opacity-50">
+            👁️ Pratinjau & Simpan Laporan PDF
         </button>
     </div>
+
+    <div x-show="showPreview" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-2 z-50 overflow-y-auto" x-cloak>
+        <div class="bg-slate-900 border border-slate-700 p-3 rounded-xl w-full max-w-4xl shadow-2xl my-auto">
+            
+            <div class="flex justify-between items-center pb-2 mb-2 border-b border-slate-700">
+                <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider">Pratinjau Dokumen A4 Landscape</h3>
+                <div class="flex gap-2">
+                    <button @click="executeSavePDF()" class="bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-bold px-3 py-1 rounded shadow-sm transition">
+                        💾 Save PDF
+                    </button>
+                    <button @click="showPreview = false" class="bg-slate-700 hover:bg-slate-600 text-slate-300 text-[11px] font-bold px-3 py-1 rounded border border-slate-600 transition">
+                        Tutup
+                    </button>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto bg-slate-950 p-2 rounded border border-slate-800 max-h-[70vh]">
+                <div class="text-black p-4 bg-white mx-auto shadow" style="font-family: Arial, sans-serif; width: 1000px; min-height: 400px;">
+                    <div class="border-b-2 border-black pb-1 mb-2 flex justify-between items-end">
+                        <div>
+                            <h2 class="text-sm font-bold uppercase" x-text="currentSheet === 'Sheet1' ? 'LAPORAN TAGIHAN WIFI - PLALANGAN.NET' : 'LAPORAN IURAN BULANAN KAMPUNG'"></h2>
+                            <p class="text-[9px] text-gray-600 font-medium">Periode: <span class="font-bold text-black" x-text="selectedMonth + ' 2026'"></span></p>
+                        </div>
+                        <div class="text-right text-[9px] font-mono font-bold">
+                            <div>Uang Masuk: <span x-text="formatRupiah(totalMasuk())"></span></div>
+                            <div>Tunggakan: <span x-text="formatRupiah(totalBelum())"></span></div>
+                        </div>
+                    </div>
+                    <p class="text-xs text-slate-600 italic text-center py-10">Dokumen laporan siap diunduh. Silakan klik tombol **Save PDF** di atas.</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+
+    <div style="position: absolute; left: -9999px; top: -9999px;">
+        <div id="hidden-pdf-print" class="text-black p-6 bg-white" style="font-family: Arial, sans-serif; width: 1045px; box-sizing: border-box;">
+            
+            <div class="border-b-2 border-black pb-1 mb-3 flex justify-between items-end">
+                <div>
+                    <h2 class="text-base font-bold uppercase" style="margin:0; padding:0;" x-text="currentSheet === 'Sheet1' ? 'LAPORAN TAGIHAN WIFI - PLALANGAN.NET' : 'LAPORAN IURAN BULANAN KAMPUNG'"></h2>
+                    <p class="text-[10px] text-gray-600" style="margin:2px 0 0 0;">Periode Bulan: <span class="font-bold text-black" x-text="selectedMonth + ' 2026'"></span> | Status Laporan: <span class="font-bold text-black uppercase" x-text="filterStatus"></span></p>
+                </div>
+                <div class="text-right text-[10px] font-mono font-bold leading-tight">
+                    <div>Total Masuk: <span x-text="formatRupiah(totalMasuk())"></span></div>
+                    <div>Total Tunggakan: <span x-text="formatRupiah(totalBelum())"></span></div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-6">
+                <div>
+                    <table class="w-full border-collapse text-[9px]" style="border: 1px solid black;">
+                        <thead>
+                            <tr class="bg-gray-200 font-bold">
+                                <th style="border: 1px solid black; padding: 3px;" class="text-center w-6">No</th>
+                                <th style="border: 1px solid black; padding: 3px;" class="text-left">Nama Member</th>
+                                <th style="border: 1px solid black; padding: 3px;" class="text-right w-20">Jumlah</th>
+                                <th style="border: 1px solid black; padding: 3px;" class="text-center w-14">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template x-for="(item, index) in filteredMembers().slice(0, 35)">
+                                <tr>
+                                    <td style="border: 1px solid black; padding: 2px;" class="text-center font-mono" x-text="index + 1"></td>
+                                    <td style="border: 1px solid black; padding: 2px;" class="font-medium truncate" x-text="item.nama + (searchQuery.trim() !== '' ? ' ('+item.bulanTarget+')' : '')"></td>
+                                    <td style="border: 1px solid black; padding: 2px;" class="text-right font-mono" x-text="formatRupiah(item.lunas ? item.uangMasuk : item.tagihan)"></td>
+                                    <td style="border: 1px solid black; padding: 2px;" class="text-center font-bold" :class="item.lunas ? 'text-green-700' : 'text-red-600'" x-text="item.lunas ? 'LUNAS' : 'BELUM'"></td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div>
+                    <table class="w-full border-collapse text-[9px]" style="border: 1px solid black;">
+                        <thead>
+                            <tr class="bg-gray-200 font-bold">
+                                <th style="border: 1px solid black; padding: 3px;" class="text-center w-6">No</th>
+                                <th style="border: 1px solid black; padding: 3px;" class="text-left">Nama Member</th>
+                                <th style="border: 1px solid black; padding: 3px;" class="text-right w-20">Jumlah</th>
+                                <th style="border: 1px solid black; padding: 3px;" class="text-center w-14">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template x-for="(item, index) in filteredMembers().slice(35, 70)">
+                                <tr>
+                                    <td style="border: 1px solid black; padding: 2px;" class="text-center font-mono" x-text="index + 36"></td>
+                                    <td style="border: 1px solid black; padding: 2px;" class="font-medium truncate" x-text="item.nama + (searchQuery.trim() !== '' ? ' ('+item.bulanTarget+')' : '')"></td>
+                                    <td style="border: 1px solid black; padding: 2px;" class="text-right font-mono" x-text="formatRupiah(item.lunas ? item.uangMasuk : item.tagihan)"></td>
+                                    <td style="border: 1px solid black; padding: 2px;" class="text-center font-bold" :class="item.lunas ? 'text-green-700' : 'text-red-600'" x-text="item.lunas ? 'LUNAS' : 'BELUM'"></td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
 
     <script>
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxyQyxZ2jNdxbs_A1KtgZfvp2tnbJU56jq_G_XvTyo_hFOwvZRyrlPjSMCbXzJaBmnv/exec";
@@ -148,10 +250,14 @@
                 searchQuery: '',
                 activeBills: [],
                 loading: false,
+                showPreview: false,
 
                 listBulan: ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"],
 
-                initData() { this.loadBulan(); },
+                initData() {
+                    this.loadBulan();
+                },
+
                 switchTab(sheetName) {
                     this.currentSheet = sheetName;
                     this.searchQuery = '';
@@ -167,11 +273,14 @@
                     } catch (error) {
                         console.error("Gagal memuat data:", error);
                         this.activeBills = [];
-                    } finally { this.loading = false; }
+                    } finally {
+                        this.loading = false;
+                    }
                 },
 
                 filteredMembers() {
                     let hasilRender = [];
+
                     if (this.searchQuery.trim() !== '') {
                         const query = this.searchQuery.toLowerCase();
                         this.activeBills.forEach(member => {
@@ -180,8 +289,11 @@
                                     const uangMasuk = member.riwayatBulan[bulan] || 0;
                                     const isLunas = uangMasuk >= member.tagihan && member.tagihan > 0;
                                     const matchStatus = this.filterStatus === 'semua' || (this.filterStatus === 'belum' && !isLunas);
+
                                     if (matchStatus) {
-                                        hasilRender.push({ id: member.id, nama: member.nama, paket: member.paket, tagihan: member.tagihan, uangMasuk: uangMasuk, lunas: isLunas, bulanTarget: bulan });
+                                        hasilRender.push({
+                                            id: member.id, nama: member.nama, paket: member.paket, tagihan: member.tagihan, uangMasuk: uangMasuk, lunas: isLunas, bulanTarget: bulan
+                                        });
                                     }
                                 });
                             }
@@ -191,8 +303,11 @@
                             const uangMasuk = member.riwayatBulan[this.selectedMonth] || 0;
                             const isLunas = uangMasuk >= member.tagihan && member.tagihan > 0;
                             const matchStatus = this.filterStatus === 'semua' || (this.filterStatus === 'belum' && !isLunas);
+
                             if (matchStatus) {
-                                hasilRender.push({ id: member.id, nama: member.nama, paket: member.paket, tagihan: member.tagihan, uangMasuk: uangMasuk, lunas: isLunas, bulanTarget: this.selectedMonth });
+                                hasilRender.push({
+                                    id: member.id, nama: member.nama, paket: member.paket, tagihan: member.tagihan, uangMasuk: uangMasuk, lunas: isLunas, bulanTarget: this.selectedMonth
+                                });
                             }
                         });
                     }
@@ -203,149 +318,70 @@
                     const statusTarget = !item.lunas;
                     item.lunas = statusTarget; 
                     item.uangMasuk = statusTarget ? item.tagihan : 0;
+
                     let memberAsli = this.activeBills.find(m => m.id === item.id);
-                    if (memberAsli) { memberAsli.riwayatBulan[item.bulanTarget] = statusTarget ? item.tagihan : 0; }
+                    if (memberAsli) {
+                        memberAsli.riwayatBulan[item.bulanTarget] = statusTarget ? item.tagihan : 0;
+                    }
+
                     try {
                         await fetch(WEB_APP_URL, {
-                            method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ aksi: "update_status", sheetName: this.currentSheet, id: item.id, bulan: item.bulanTarget, lunas: statusTarget })
+                            method: "POST",
+                            mode: "no-cors",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                                aksi: "update_status",
+                                sheetName: this.currentSheet,
+                                id: item.id,
+                                bulan: item.bulanTarget,
+                                lunas: statusTarget
+                            })
                         });
-                    } catch (error) { console.error("Gagal simpan data:", error); this.loadBulan(); }
+                    } catch (error) {
+                        console.error("Gagal simpan data:", error);
+                        this.loadBulan();
+                    }
                 },
 
                 async generateMassal() {
-                    if (!confirm(`Reset data bulan ${this.selectedMonth}?`)) return;
+                    if (!confirm(`Reset (0) semua pembayaran bulan ${this.selectedMonth} pada ${this.currentSheet === 'Sheet1' ? 'Tagihan WiFi' : 'Iuran Kampung'}?`)) return;
                     this.loading = true;
                     try {
                         await fetch(WEB_APP_URL, {
-                            method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ aksi: "generate_massal", sheetName: this.currentSheet, bulan: this.selectedMonth })
+                            method: "POST",
+                            mode: "no-cors",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                                aksi: "generate_massal",
+                                sheetName: this.currentSheet,
+                                bulan: this.selectedMonth
+                            })
                         });
                         setTimeout(() => this.loadBulan(), 1500);
-                    } catch (error) { this.loading = false; }
+                    } catch (error) {
+                        this.loading = false;
+                    }
                 },
 
-                // ===================================================================
-                // LOGIKA ADOPSI BUKU TAMU DIGITAL: METODE WINDOW.OPEN (GARANSI NO BLANK)
-                // ===================================================================
-                printLaporanBukuTamu() {
-                    const listData = this.filteredMembers();
-                    const judulLaporan = this.currentSheet === 'Sheet1' ? 'LAPORAN TAGIHAN WIFI - PLALANGAN.NET' : 'LAPORAN IURAN BULANAN KAMPUNG';
+                // EKSEKUSI PENYELAMATAN: CETAK ELEMEN YANG BERADA DI LUAR KENDALI MODAL (GARANSI ANTI-BLANK)
+                executeSavePDF() {
+                    const printTarget = document.getElementById('hidden-pdf-print');
+                    const namaFile = this.currentSheet === 'Sheet1' ? 'WiFi' : 'Kampung';
                     
-                    // Pisahkan data menjadi 2 array: Kolom Kiri (1-35) dan Kolom Kanan (36-70)
-                    const dataKiri = listData.slice(0, 35);
-                    const dataKanan = listData.slice(35, 70);
+                    const konfigurasiCetak = {
+                        margin:       0.2,
+                        filename:     `Laporan_${namaFile}_${this.selectedMonth}.pdf`,
+                        image:        { type: 'jpeg', quality: 0.98 },
+                        html2canvas:  { scale: 2, logging: false, useCORS: true },
+                        jsPDF:        { unit: 'in', format: 'a4', orientation: 'landscape' }
+                    };
 
-                    // 1. Buka Tab Jendela Baru Browser HP
-                    const printWindow = window.open('', '_blank');
-                    
-                    // 2. Susun Struktur HTML Putih Bersih Khusus Cetak A4 Landscape Sejajar
-                    let htmlContent = `
-                    <html>
-                    <head>
-                        <title>Cetak Laporan</title>
-                        <style>
-                            @page { size: a4 landscape; margin: 0.3in; }
-                            body { font-family: Arial, sans-serif; color: #000; background: #fff; margin: 0; padding: 0; font-size: 11px; }
-                            .header { border-b: 2px solid #000; padding-bottom: 4px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: flex-end; }
-                            .header h2 { margin: 0; padding: 0; font-size: 15px; text-transform: uppercase; }
-                            .header p { margin: 3px 0 0 0; color: #444; font-size: 11px; }
-                            .grid-container { display: flex; gap: 25px; }
-                            .kolom-tabel { flex: 1; }
-                            table { width: 100%; border-collapse: collapse; }
-                            th, td { border: 1px solid #000; padding: 3px 5px; text-align: left; box-sizing: border-box; }
-                            th { background-color: #f2f2f2; font-bold: true; font-size: 10px; text-transform: uppercase; }
-                            .text-right { text-align: right; }
-                            .text-center { text-align: center; }
-                            .font-mono { font-family: monospace; }
-                            .status-lunas { color: green; font-weight: bold; }
-                            .status-belum { color: red; font-weight: bold; }
-                        </style>
-                    </head>
-                    <body>
-                        <div class="header">
-                            <div>
-                                <h2>${judulLaporan}</h2>
-                                <p>Periode Bulan: <b>${this.selectedMonth} 2026</b> | Status Data: <b>${this.filterStatus.toUpperCase()}</b></p>
-                            </div>
-                            <div class="text-right font-mono" style="font-weight: bold; font-size: 11px; line-height: 1.3;">
-                                <div>Total Masuk: ${this.formatRupiah(this.totalMasuk())}</div>
-                                <div>Total Tunggakan: ${this.formatRupiah(this.totalBelum())}</div>
-                            </div>
-                        </div>
-
-                        <div class="grid-container">
-                            
-                            <div class="kolom-tabel">
-                                <table>
-                                    <thead>
-                                        <tr>
-                                            <th class="text-center" style="width: 30px;">No</th>
-                                            <th>Nama Member</th>
-                                            <th class="text-right" style="width: 90px;">Jumlah</th>
-                                            <th class="text-center" style="width: 60px;">Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>`;
-                                    
-                                    dataKiri.forEach((item, index) => {
-                                        const labelBulan = this.searchQuery.trim() !== '' ? ` (${item.bulanTarget})` : '';
-                                        const txtStatus = item.lunas ? '<span class="status-lunas">LUNAS</span>' : '<span class="status-belum">BELUM</span>';
-                                        htmlContent += `
-                                        <tr>
-                                            <td class="text-center font-mono">${index + 1}</td>
-                                            <td><b>${item.nama}</b>${labelBulan}</td>
-                                            <td class="text-right font-mono">${this.formatRupiah(item.lunas ? item.uangMasuk : item.tagihan)}</td>
-                                            <td class="text-center">${txtStatus}</td>
-                                        </tr>`;
-                                    });
-
-                    htmlContent += `
-                                    </tbody>
-                                </table>
-                            </div>
-
-                            <div class="kolom-tabel">
-                                <table>
-                                    <thead>
-                                        <tr>
-                                            <th class="text-center" style="width: 30px;">No</th>
-                                            <th>Nama Member</th>
-                                            <th class="text-right" style="width: 90px;">Jumlah</th>
-                                            <th class="text-center" style="width: 60px;">Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>`;
-
-                                    dataKanan.forEach((item, index) => {
-                                        const labelBulan = this.searchQuery.trim() !== '' ? ` (${item.bulanTarget})` : '';
-                                        const txtStatus = item.lunas ? '<span class="status-lunas">LUNAS</span>' : '<span class="status-belum">BELUM</span>';
-                                        htmlContent += `
-                                        <tr>
-                                            <td class="text-center font-mono">${index + 36}</td>
-                                            <td><b>${item.nama}</b>${labelBulan}</td>
-                                            <td class="text-right font-mono">${this.formatRupiah(item.lunas ? item.uangMasuk : item.tagihan)}</td>
-                                            <td class="text-center">${txtStatus}</td>
-                                        </tr>`;
-                                    });
-
-                    htmlContent += `
-                                    </tbody>
-                                </table>
-                            </div>
-
-                        </div>
-                    </body>
-                    </html>`;
-
-                    // 3. Tulis Konten ke Jendela Tab Baru
-                    printWindow.document.write(htmlContent);
-                    printWindow.document.close();
-
-                    // 4. Perintah Eksekusi Print / Save PDF Bawaan Sistem HP (Anti-Blank Garansi Sukses)
+                    // Kasih delay tipis 300ms agar browser tenang, lalu langsung download
                     setTimeout(() => {
-                        printWindow.print();
-                    }, 500);
+                        html2pdf().set(konfigurasiCetak).from(printTarget).save().then(() => {
+                            this.showPreview = false; // Tutup pop-up pratinjau setelah sukses
+                        });
+                    }, 300);
                 },
 
                 totalMasuk() { return this.activeBills.reduce((sum, m) => sum + (m.riwayatBulan[this.selectedMonth] || 0), 0); },
@@ -356,7 +392,12 @@
                     }, 0);
                 },
                 totalTarget() { return this.activeBills.reduce((sum, m) => sum + m.tagihan, 0); },
-                countBelum() { return this.activeBills.filter(m => (m.riwayatBulan[this.selectedMonth] || 0) < m.tagihan).length; },
+                countBelum() {
+                    return this.activeBills.filter(m => {
+                        const masuk = m.riwayatBulan[this.selectedMonth] || 0;
+                        return masuk < m.tagihan;
+                    }).length;
+                },
                 formatRupiah(angka) { return 'Rp ' + angka.toLocaleString('id-ID'); }
             }
         }
