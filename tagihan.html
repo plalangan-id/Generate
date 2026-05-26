@@ -6,7 +6,6 @@
     <title>Multi Billing App - PLALANGAN.NET</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <!-- Library html2pdf.js untuk merender & menyimpan PDF secara instan -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         body {
@@ -16,11 +15,11 @@
         }
         ::-webkit-scrollbar { width: 4px; height: 4px; }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 2px; }
+        [x-cloak] { display: none !important; }
     </style>
 </head>
 <body class="p-2 antialiased" x-data="billApp()" x-init="initData()">
 
-    <!-- NAVIGASI MULTI-INTERFACE INTERAKTIF -->
     <nav class="mb-3 grid grid-cols-2 gap-2 bg-slate-800 p-1 rounded-lg border border-slate-700/60 shadow-sm">
         <button @click="switchTab('Sheet1')" 
                 :class="currentSheet === 'Sheet1' ? 'bg-blue-600 text-white font-bold' : 'text-slate-400 hover:text-slate-200'"
@@ -34,7 +33,6 @@
         </button>
     </nav>
 
-    <!-- HEADER & RINGKASAN KEUANGAN -->
     <header class="mb-3 bg-slate-800 p-2.5 rounded-lg border border-slate-700 shadow-sm">
         <div class="flex justify-between items-center mb-2">
             <h1 class="text-xs font-bold tracking-wide uppercase" 
@@ -73,7 +71,6 @@
         </div>
     </header>
 
-    <!-- TOMBOL AKSI & FILTER DATA -->
     <div class="mb-2 flex gap-2 justify-between items-center bg-slate-800/50 p-2 rounded-lg border border-slate-700/60">
         <div class="flex gap-1.5 items-center">
             <button @click="filterStatus = 'semua'" :class="filterStatus === 'semua' ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-300'" class="text-[10px] font-semibold px-2 py-0.5 rounded transition">Semua</button>
@@ -87,7 +84,6 @@
         </button>
     </div>
 
-    <!-- DAFTAR LIST/TABEL ALA GOOGLE SHEETS -->
     <main class="bg-slate-800 rounded-lg border border-slate-700 shadow-md overflow-hidden mb-3">
         <div class="p-1.5 bg-slate-900/50 border-b border-slate-700">
             <input type="text" x-model="searchQuery" placeholder="Cari nama member..." class="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500">
@@ -136,18 +132,15 @@
         </div>
     </main>
 
-    <!-- WADAH MENU TAMBAHAN: TOMBOL POP-UP PRATINJAU -->
     <div id="additional-features" class="space-y-2">
         <button @click="showPreview = true" :disabled="loading || filteredMembers().length === 0" class="w-full bg-slate-700 hover:bg-slate-600 active:scale-98 text-slate-200 font-bold text-xs py-2 rounded-lg border border-slate-600 shadow transition flex items-center justify-center gap-1.5 disabled:opacity-50">
             👁️ Pratinjau & Simpan Laporan PDF
         </button>
     </div>
 
-    <!-- WINDOW MODAL MODEREN UNTUK PRATINJAU & SAVE LAPORAN PDF -->
     <div x-show="showPreview" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-2 z-50 overflow-y-auto" x-cloak>
         <div class="bg-slate-900 border border-slate-700 p-3 rounded-xl w-full max-w-4xl shadow-2xl my-auto">
             
-            <!-- Bar Menu Aksi Atas Pop-up -->
             <div class="flex justify-between items-center pb-2 mb-2 border-b border-slate-700">
                 <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider">Pratinjau Dokumen A4 Landscape</h3>
                 <div class="flex gap-2">
@@ -160,11 +153,9 @@
                 </div>
             </div>
 
-            <!-- Area Kertas Lembar Pratinjau (Bergaya Flat Cetak Putih) -->
             <div class="overflow-x-auto bg-slate-950 p-2 rounded border border-slate-800 max-h-[70vh]">
                 <div id="pdf-template" class="text-black p-4 bg-white mx-auto shadow" style="font-family: Arial, sans-serif; width: 1000px; min-height: 500px;">
                     
-                    <!-- Header Cetakan Laporan -->
                     <div class="border-b-2 border-black pb-1 mb-2 flex justify-between items-end">
                         <div>
                             <h2 class="text-sm font-bold uppercase" x-text="currentSheet === 'Sheet1' ? 'LAPORAN TAGIHAN WIFI - PLALANGAN.NET' : 'LAPORAN IURAN BULANAN KAMPUNG'"></h2>
@@ -176,9 +167,7 @@
                         </div>
                     </div>
 
-                    <!-- Layout 2 Kolom Landscape Kiri (35) & Kanan (35) -->
                     <div class="grid grid-cols-2 gap-4">
-                        <!-- KOLOM KIRI (Baris 1 - 35) -->
                         <div>
                             <table class="w-full border-collapse text-[8.5px]">
                                 <thead>
@@ -202,7 +191,6 @@
                             </table>
                         </div>
 
-                        <!-- KOLOM KANAN (Baris 36 - 70) -->
                         <div>
                             <table class="w-full border-collapse text-[8.5px]">
                                 <thead>
@@ -233,7 +221,6 @@
         </div>
     </div>
 
-    <!-- LOGIKA JAVASCRIPT & HANDLING MATRIX DATA -->
     <script>
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxyQyxZ2jNdxbs_A1KtgZfvp2tnbJU56jq_G_XvTyo_hFOwvZRyrlPjSMCbXzJaBmnv/exec";
 
@@ -245,7 +232,7 @@
                 searchQuery: '',
                 activeBills: [],
                 loading: false,
-                showPreview: false, // Mengontrol buka-tutup jendela pratinjau laporan
+                showPreview: false,
 
                 listBulan: ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"],
 
@@ -358,9 +345,23 @@
                     }
                 },
 
-                // LOGIKA PROSES DOWNLOAD: AMBIL DATA DARI CANVAS MODAL LALU AUTO-SAVE PDF
+                // SOLUSI MUTLAK: METODE KLONING ELEMEN DI MEMORI ASLI BIAR TIDAK BLANK / PUTIH POLOS
                 executeSavePDF() {
-                    const element = document.getElementById('pdf-template');
+                    // 1. Ambil target elemen pratinjau asli
+                    const originalNode = document.getElementById('pdf-template');
+                    
+                    // 2. Kloning elemen secara mendalam beserta data teks di dalamnya ke memori RAM
+                    const clonedNode = originalNode.cloneNode(true);
+                    
+                    // 3. Paksa hapus kelas utilitas tersembunyi/CSS modal di elemen klon agar terbaca terang oleh canvas
+                    clonedNode.style.display = 'block';
+                    clonedNode.style.position = 'absolute';
+                    clonedNode.style.top = '-9999px'; // Kita taruh jauh di luar koordinat pandangan layar HP
+                    clonedNode.style.left = '-9999px';
+                    
+                    // 4. Tempelkan sementara dokumen klon ke body halaman utama
+                    document.body.appendChild(clonedNode);
+
                     const namaFile = this.currentSheet === 'Sheet1' ? 'WiFi' : 'Kampung';
                     
                     const konfigurasiSave = {
@@ -371,9 +372,11 @@
                         jsPDF:        { unit: 'in', format: 'a4', orientation: 'landscape' }
                     };
 
-                    // Jalankan save otomatis, setelah sukses langsung tutup modal jendela pratinjau
-                    html2pdf().set(konfigurasiSave).from(element).save().then(() => {
-                        this.showPreview = false;
+                    // 5. Eksekusi penyimpanan PDF menggunakan elemen klon yang datanya stabil dan bersih
+                    html2pdf().set(konfigurasiSave).from(clonedNode).save().then(() => {
+                        // 6. Setelah PDF berhasil terunduh, langsung hancurkan elemen klon dari body agar RAM HP enteng kembali
+                        document.body.removeChild(clonedNode);
+                        this.showPreview = false; // Tutup jendela modal pop-up pratinjau
                     });
                 },
 
