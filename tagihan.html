@@ -22,12 +22,12 @@
     <nav class="mb-3 grid grid-cols-2 gap-2 bg-slate-800 p-1 rounded-lg border border-slate-700/60 shadow-sm">
         <button @click="switchTab('Sheet1')" 
                 :class="currentSheet === 'Sheet1' ? 'bg-blue-600 text-white font-bold' : 'text-slate-400 hover:text-slate-200'"
-                class="text-xs py-1.5 rounded transition-all uppercase tracking-wider text-center">
+                class="text-xs py-1.5 rounded transition-all uppercase tracking-wider text-center cursor-pointer">
             🌐 Tagihan WiFi
         </button>
         <button @click="switchTab('Sheet2')" 
                 :class="currentSheet === 'Sheet2' ? 'bg-purple-600 text-white font-bold' : 'text-slate-400 hover:text-slate-200'"
-                class="text-xs py-1.5 rounded transition-all uppercase tracking-wider text-center">
+                class="text-xs py-1.5 rounded transition-all uppercase tracking-wider text-center cursor-pointer">
             🏡 Iuran Kampung
         </button>
     </nav>
@@ -72,12 +72,12 @@
 
     <div class="mb-2 flex gap-2 justify-between items-center bg-slate-800/50 p-2 rounded-lg border border-slate-700/60">
         <div class="flex gap-1.5 items-center">
-            <button @click="filterStatus = 'semua'" :class="filterStatus === 'semua' ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-300'" class="text-[10px] font-semibold px-2 py-0.5 rounded transition">Semua</button>
-            <button @click="filterStatus = 'belum'" :class="filterStatus === 'belum' ? 'bg-rose-600 text-white border-rose-500' : 'bg-slate-700 text-slate-300'" class="text-[10px] font-semibold px-2 py-0.5 rounded transition flex items-center gap-1">
+            <button @click="filterStatus = 'semua'" :class="filterStatus === 'semua' ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-300'" class="text-[10px] font-semibold px-2 py-0.5 rounded transition cursor-pointer">Semua</button>
+            <button @click="filterStatus = 'belum'" :class="filterStatus === 'belum' ? 'bg-rose-600 text-white border-rose-500' : 'bg-slate-700 text-slate-300'" class="text-[10px] font-semibold px-2 py-0.5 rounded transition flex items-center gap-1 cursor-pointer">
                 Belum Bayar <span class="bg-slate-900/60 text-rose-300 px-1 rounded-sm text-[9px]" x-text="countBelum()">0</span>
             </button>
         </div>
-        <button @click="generateMassal()" :disabled="loading" class="bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold text-[10px] px-2.5 py-1 rounded shadow transition flex items-center gap-1 disabled:opacity-50">
+        <button @click="generateMassal()" :disabled="loading" class="bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold text-[10px] px-2.5 py-1 rounded shadow transition flex items-center gap-1 disabled:opacity-50 cursor-pointer">
             <span x-show="!loading">⚡ Reset Bulan Ini</span>
             <span x-show="loading">Proses...</span>
         </button>
@@ -115,7 +115,7 @@
                             <td class="py-1 px-2 text-center">
                                 <button @click="toggleBayar(item)" 
                                         :class="item.lunas ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border-rose-500/30'"
-                                        class="w-full text-[10px] font-bold py-0.5 px-1 rounded border transition-all active:scale-95"
+                                        class="w-full text-[10px] font-bold py-0.5 px-1 rounded border transition-all active:scale-95 cursor-pointer"
                                         x-text="item.lunas ? 'LUNAS' : 'BAYAR'">
                                 </button>
                             </td>
@@ -132,7 +132,7 @@
     </main>
 
     <div id="additional-features" class="space-y-2">
-        <button @click="printLaporanBukuTamu()" :disabled="loading || filteredMembers().length === 0" class="w-full bg-slate-700 hover:bg-slate-600 active:scale-98 text-slate-200 font-bold text-xs py-2 rounded-lg border border-slate-600 shadow transition flex items-center justify-center gap-1.5 disabled:opacity-50">
+        <button @click="printLaporanBukuTamu()" :disabled="loading || filteredMembers().length === 0" class="w-full bg-slate-700 hover:bg-slate-600 active:scale-98 text-slate-200 font-bold text-xs py-2 rounded-lg border border-slate-600 shadow transition flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer">
             🖨️ Cetak / Save PDF via Tab Baru (Anti-Blank)
         </button>
     </div>
@@ -225,36 +225,34 @@
                     } catch (error) { this.loading = false; }
                 },
 
-                // ===================================================================
-                // LOGIKA ADOPSI BUKU TAMU DIGITAL: METODE WINDOW.OPEN (GARANSI NO BLANK)
-                // ===================================================================
                 printLaporanBukuTamu() {
                     const listData = this.filteredMembers();
                     const judulLaporan = this.currentSheet === 'Sheet1' ? 'LAPORAN TAGIHAN WIFI - PLALANGAN.NET' : 'LAPORAN IURAN BULANAN KAMPUNG';
                     
-                    // Pisahkan data menjadi 2 array: Kolom Kiri (1-35) dan Kolom Kanan (36-70)
-                    const dataKiri = listData.slice(0, 35);
-                    const dataKanan = listData.slice(35, 70);
+                    // PEMBAGIAN DATA: 3 Bagian Kolom (Masing-masing maks 30 baris untuk keamanan 1 halaman)
+                    const dataKiri = listData.slice(0, 30);
+                    const dataTengah = listData.slice(30, 60);
+                    const dataKanan = listData.slice(60, 90);
 
-                    // 1. Buka Tab Jendela Baru Browser HP
                     const printWindow = window.open('', '_blank');
                     
-                    // 2. Susun Struktur HTML Putih Bersih Khusus Cetak A4 Landscape Sejajar
                     let htmlContent = `
                     <html>
                     <head>
                         <title>Cetak Laporan</title>
                         <style>
-                            @page { size: a4 landscape; margin: 0.3in; }
-                            body { font-family: Arial, sans-serif; color: #000; background: #fff; margin: 0; padding: 0; font-size: 11px; }
-                            .header { border-b: 2px solid #000; padding-bottom: 4px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: flex-end; }
-                            .header h2 { margin: 0; padding: 0; font-size: 15px; text-transform: uppercase; }
-                            .header p { margin: 3px 0 0 0; color: #444; font-size: 11px; }
-                            .grid-container { display: flex; gap: 25px; }
+                            @page { size: a4 landscape; margin: 0.25in; }
+                            body { font-family: Arial, sans-serif; color: #000; background: #fff; margin: 0; padding: 0; font-size: 9.5px; }
+                            .header { border-bottom: 2px solid #000; padding-bottom: 4px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: flex-end; }
+                            .header h2 { margin: 0; padding: 0; font-size: 14px; text-transform: uppercase; }
+                            .header p { margin: 2px 0 0 0; color: #444; font-size: 10px; }
+                            
+                            .grid-container { display: flex; gap: 15px; }
                             .kolom-tabel { flex: 1; }
+                            
                             table { width: 100%; border-collapse: collapse; }
-                            th, td { border: 1px solid #000; padding: 3px 5px; text-align: left; box-sizing: border-box; }
-                            th { background-color: #f2f2f2; font-bold: true; font-size: 10px; text-transform: uppercase; }
+                            th, td { border: 1px solid #000; padding: 2.5px 4px; text-align: left; box-sizing: border-box; line-height: 1.2; }
+                            th { background-color: #f2f2f2; font-weight: bold; font-size: 8.5px; text-transform: uppercase; }
                             .text-right { text-align: right; }
                             .text-center { text-align: center; }
                             .font-mono { font-family: monospace; }
@@ -268,7 +266,7 @@
                                 <h2>${judulLaporan}</h2>
                                 <p>Periode Bulan: <b>${this.selectedMonth} 2026</b> | Status Data: <b>${this.filterStatus.toUpperCase()}</b></p>
                             </div>
-                            <div class="text-right font-mono" style="font-weight: bold; font-size: 11px; line-height: 1.3;">
+                            <div class="text-right font-mono" style="font-weight: bold; font-size: 10px; line-height: 1.3;">
                                 <div>Total Masuk: ${this.formatRupiah(this.totalMasuk())}</div>
                                 <div>Total Tunggakan: ${this.formatRupiah(this.totalBelum())}</div>
                             </div>
@@ -280,10 +278,10 @@
                                 <table>
                                     <thead>
                                         <tr>
-                                            <th class="text-center" style="width: 30px;">No</th>
-                                            <th>Nama Member</th>
-                                            <th class="text-right" style="width: 90px;">Jumlah</th>
-                                            <th class="text-center" style="width: 60px;">Status</th>
+                                            <th class="text-center" style="width: 25px;">No</th>
+                                            <th>Nama</th>
+                                            <th class="text-right" style="width: 95px;">Jumlah</th>
+                                            <th class="text-center" style="width: 55px;">Status</th>
                                         </tr>
                                     </thead>
                                     <tbody>`;
@@ -300,7 +298,7 @@
                                         </tr>`;
                                     });
 
-                    htmlContent += `
+    htmlContent += `
                                     </tbody>
                                 </table>
                             </div>
@@ -309,10 +307,39 @@
                                 <table>
                                     <thead>
                                         <tr>
-                                            <th class="text-center" style="width: 30px;">No</th>
-                                            <th>Nama Member</th>
-                                            <th class="text-right" style="width: 90px;">Jumlah</th>
-                                            <th class="text-center" style="width: 60px;">Status</th>
+                                            <th class="text-center" style="width: 25px;">No</th>
+                                            <th>Nama</th>
+                                            <th class="text-right" style="width: 95px;">Jumlah</th>
+                                            <th class="text-center" style="width: 55px;">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>`;
+
+                                    dataTengah.forEach((item, index) => {
+                                        const labelBulan = this.searchQuery.trim() !== '' ? ` (${item.bulanTarget})` : '';
+                                        const txtStatus = item.lunas ? '<span class="status-lunas">LUNAS</span>' : '<span class="status-belum">BELUM</span>';
+                                        htmlContent += `
+                                        <tr>
+                                            <td class="text-center font-mono">${index + 31}</td>
+                                            <td><b>${item.nama}</b>${labelBulan}</td>
+                                            <td class="text-right font-mono">${this.formatRupiah(item.lunas ? item.uangMasuk : item.tagihan)}</td>
+                                            <td class="text-center">${txtStatus}</td>
+                                        </tr>`;
+                                    });
+
+    htmlContent += `
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="kolom-tabel">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th class="text-center" style="width: 25px;">No</th>
+                                            <th>Nama</th>
+                                            <th class="text-right" style="width: 95px;">Jumlah</th>
+                                            <th class="text-center" style="width: 55px;">Status</th>
                                         </tr>
                                     </thead>
                                     <tbody>`;
@@ -322,14 +349,14 @@
                                         const txtStatus = item.lunas ? '<span class="status-lunas">LUNAS</span>' : '<span class="status-belum">BELUM</span>';
                                         htmlContent += `
                                         <tr>
-                                            <td class="text-center font-mono">${index + 36}</td>
+                                            <td class="text-center font-mono">${index + 61}</td>
                                             <td><b>${item.nama}</b>${labelBulan}</td>
                                             <td class="text-right font-mono">${this.formatRupiah(item.lunas ? item.uangMasuk : item.tagihan)}</td>
                                             <td class="text-center">${txtStatus}</td>
                                         </tr>`;
                                     });
 
-                    htmlContent += `
+    htmlContent += `
                                     </tbody>
                                 </table>
                             </div>
@@ -338,25 +365,26 @@
                     </body>
                     </html>`;
 
-                    // 3. Tulis Konten ke Jendela Tab Baru
                     printWindow.document.write(htmlContent);
                     printWindow.document.close();
 
-                    // 4. Perintah Eksekusi Print / Save PDF Bawaan Sistem HP (Anti-Blank Garansi Sukses)
                     setTimeout(() => {
                         printWindow.print();
                     }, 500);
                 },
 
-                totalMasuk() { return this.activeBills.reduce((sum, m) => sum + (m.riwayatBulan[this.selectedMonth] || 0), 0); },
-                totalBelum() {
-                    return this.activeBills.reduce((sum, m) => {
-                        const masuk = m.riwayatBulan[this.selectedMonth] || 0;
-                        return sum + (masuk >= m.tagihan ? 0 : m.tagihan);
-                    }, 0);
+                totalMasuk() { 
+                    return this.filteredMembers().reduce((sum, item) => sum + (item.lunas ? item.uangMasuk : 0), 0); 
                 },
-                totalTarget() { return this.activeBills.reduce((sum, m) => sum + m.tagihan, 0); },
-                countBelum() { return this.activeBills.filter(m => (m.riwayatBulan[this.selectedMonth] || 0) < m.tagihan).length; },
+                totalBelum() {
+                    return this.filteredMembers().reduce((sum, item) => sum + (item.lunas ? 0 : item.tagihan - item.uangMasuk), 0);
+                },
+                totalTarget() { 
+                    return this.filteredMembers().reduce((sum, item) => sum + item.tagihan, 0); 
+                },
+                countBelum() { 
+                    return this.activeBills.filter(m => (m.riwayatBulan[this.selectedMonth] || 0) < m.tagihan).length; 
+                },
                 formatRupiah(angka) { return 'Rp ' + angka.toLocaleString('id-ID'); }
             }
         }
