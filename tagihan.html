@@ -114,9 +114,10 @@
                             <td class="py-1 px-2 text-right font-mono text-[11px] text-slate-300 font-semibold" x-text="formatRupiah(item.lunas ? item.uangMasuk : item.tagihan)"></td>
                             <td class="py-1 px-2 text-center">
                                 <button @click="toggleBayar(item)" 
-                                        :class="item.lunas ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border-rose-500/30'"
-                                        class="w-full text-[10px] font-bold py-0.5 px-1 rounded border transition-all active:scale-95 cursor-pointer"
-                                        x-text="item.lunas ? 'LUNAS' : 'BAYAR'">
+                                        :disabled="item.lunas"
+                                        :class="item.lunas ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30 opacity-75' : 'bg-rose-500/20 text-rose-400 border-rose-500/30 cursor-pointer active:scale-95'"
+                                        class="w-full text-[10px] font-bold py-0.5 px-1 rounded border transition-all">
+                                    <span x-text="item.lunas ? 'LUNAS' : 'BAYAR'"></span>
                                 </button>
                             </td>
                         </tr>
@@ -200,6 +201,9 @@
                 },
 
                 async toggleBayar(item) {
+                    // PERUBAHAN: Kunci logika fungsi jika status item memang sudah lunas (mencegah klik balik)
+                    if (item.lunas) return;
+
                     const statusTarget = !item.lunas;
                     item.lunas = statusTarget; 
                     item.uangMasuk = statusTarget ? item.tagihan : 0;
@@ -229,7 +233,6 @@
                     const listData = this.filteredMembers();
                     const judulLaporan = this.currentSheet === 'Sheet1' ? 'LAPORAN TAGIHAN WIFI - PLALANGAN.NET' : 'LAPORAN IURAN BULANAN KAMPUNG';
                     
-                    // PEMBAGIAN DATA: 3 Bagian Kolom (Masing-masing maks 30 baris untuk keamanan 1 halaman)
                     const dataKiri = listData.slice(0, 30);
                     const dataTengah = listData.slice(30, 60);
                     const dataKanan = listData.slice(60, 90);
