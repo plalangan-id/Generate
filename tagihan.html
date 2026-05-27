@@ -201,7 +201,7 @@
                 },
 
                 async toggleBayar(item) {
-                    // PERUBAHAN: Kunci logika fungsi jika status item memang sudah lunas (mencegah klik balik)
+                    // FITUR LOCK: Jika status item sudah LUNAS, kunci fungsi agar tidak bisa klik balik ke BAYAR
                     if (item.lunas) return;
 
                     const statusTarget = !item.lunas;
@@ -232,11 +232,6 @@
                 printLaporanBukuTamu() {
                     const listData = this.filteredMembers();
                     const judulLaporan = this.currentSheet === 'Sheet1' ? 'LAPORAN TAGIHAN WIFI - PLALANGAN.NET' : 'LAPORAN IURAN BULANAN KAMPUNG';
-                    
-                    const dataKiri = listData.slice(0, 30);
-                    const dataTengah = listData.slice(30, 60);
-                    const dataKanan = listData.slice(60, 90);
-
                     const printWindow = window.open('', '_blank');
                     
                     let htmlContent = `
@@ -245,7 +240,15 @@
                         <title>Cetak Laporan</title>
                         <style>
                             @page { size: a4 landscape; margin: 0.25in; }
-                            body { font-family: Arial, sans-serif; color: #000; background: #fff; margin: 0; padding: 0; font-size: 9.5px; }
+                            body { font-family: Arial, sans-serif; color: #000; background: #fff; margin: 0; padding: 0; }
+                            
+                            /* FORCE TRICK: Paksa PDF untuk mengunci dokumen tetap di 1 halaman penuh */
+                            html, body, .grid-container, table, tr { 
+                                page-break-inside: avoid !important; 
+                                break-inside: avoid !important;
+                            }
+                            @media print { html, body { height: 99%; overflow: hidden; } }
+
                             .header { border-bottom: 2px solid #000; padding-bottom: 4px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: flex-end; }
                             .header h2 { margin: 0; padding: 0; font-size: 14px; text-transform: uppercase; }
                             .header p { margin: 2px 0 0 0; color: #444; font-size: 10px; }
@@ -254,8 +257,8 @@
                             .kolom-tabel { flex: 1; }
                             
                             table { width: 100%; border-collapse: collapse; }
-                            th, td { border: 1px solid #000; padding: 2.5px 4px; text-align: left; box-sizing: border-box; line-height: 1.2; }
-                            th { background-color: #f2f2f2; font-weight: bold; font-size: 8.5px; text-transform: uppercase; }
+                            th, td { border: 1px solid #000; box-sizing: border-box; }
+                            th { background-color: #f2f2f2; font-weight: bold; text-transform: uppercase; }
                             .text-right { text-align: right; }
                             .text-center { text-align: center; }
                             .font-mono { font-family: monospace; }
@@ -274,106 +277,78 @@
                                 <div>Total Tunggakan: ${this.formatRupiah(this.totalBelum())}</div>
                             </div>
                         </div>
+                        <div class="grid-container">`;
 
-                        <div class="grid-container">
-                            
-                            <div class="kolom-tabel">
-                                <table>
-                                    <thead>
-                                        <tr>
-                                            <th class="text-center" style="width: 25px;">No</th>
-                                            <th>Nama</th>
-                                            <th class="text-right" style="width: 95px;">Jumlah</th>
-                                            <th class="text-center" style="width: 55px;">Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>`;
-                                    
-                                    dataKiri.forEach((item, index) => {
-                                        const labelBulan = this.searchQuery.trim() !== '' ? ` (${item.bulanTarget})` : '';
-                                        const txtStatus = item.lunas ? '<span class="status-lunas">LUNAS</span>' : '<span class="status-belum">BELUM</span>';
-                                        htmlContent += `
-                                        <tr>
-                                            <td class="text-center font-mono">${index + 1}</td>
-                                            <td><b>${item.nama}</b>${labelBulan}</td>
-                                            <td class="text-right font-mono">${this.formatRupiah(item.lunas ? item.uangMasuk : item.tagihan)}</td>
-                                            <td class="text-center">${txtStatus}</td>
-                                        </tr>`;
-                                    });
+                    // =========================================================================
+                    // LOGIKA OTOMATIS A: JIKA TAB WIFI (SHEET1) -> MAKA CETAK 3 KOLOM (30-30-30)
+                    // =========================================================================
+                    if (this.currentSheet === 'Sheet1') {
+                        const dataKiri = listData.slice(0, 30);
+                        const dataTengah = listData.slice(30, 60);
+                        const dataKanan = listData.slice(60, 90);
 
-    htmlContent += `
-                                    </tbody>
-                                </table>
-                            </div>
+                        htmlContent += `<style>body { font-size: 9.5px; } th, td { padding: 2px 4px; line-height: 1.15; } th { font-size: 8.5px; }</style>`;
 
-                            <div class="kolom-tabel">
-                                <table>
-                                    <thead>
-                                        <tr>
-                                            <th class="text-center" style="width: 25px;">No</th>
-                                            <th>Nama</th>
-                                            <th class="text-right" style="width: 95px;">Jumlah</th>
-                                            <th class="text-center" style="width: 55px;">Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>`;
+                        // Kolom Kiri
+                        htmlContent += `<div class="kolom-tabel"><table><thead><tr><th class="text-center" style="width: 25px;">No</th><th>Nama</th><th class="text-right" style="width: 95px;">Jumlah</th><th class="text-center" style="width: 55px;">Status</th></tr></thead><tbody>`;
+                        dataKiri.forEach((item, index) => {
+                            const labelBulan = this.searchQuery.trim() !== '' ? ` (${item.bulanTarget})` : '';
+                            htmlContent += `<tr><td class="text-center font-mono">${index + 1}</td><td><b>${item.nama}</b>${labelBulan}</td><td class="text-right font-mono">${this.formatRupiah(item.lunas ? item.uangMasuk : item.tagihan)}</td><td class="text-center">${item.lunas ? '<span class="status-lunas">LUNAS</span>' : '<span class="status-belum">BELUM</span>'}</td></tr>`;
+                        });
+                        htmlContent += `</tbody></table></div>`;
 
-                                    dataTengah.forEach((item, index) => {
-                                        const labelBulan = this.searchQuery.trim() !== '' ? ` (${item.bulanTarget})` : '';
-                                        const txtStatus = item.lunas ? '<span class="status-lunas">LUNAS</span>' : '<span class="status-belum">BELUM</span>';
-                                        htmlContent += `
-                                        <tr>
-                                            <td class="text-center font-mono">${index + 31}</td>
-                                            <td><b>${item.nama}</b>${labelBulan}</td>
-                                            <td class="text-right font-mono">${this.formatRupiah(item.lunas ? item.uangMasuk : item.tagihan)}</td>
-                                            <td class="text-center">${txtStatus}</td>
-                                        </tr>`;
-                                    });
+                        // Kolom Tengah
+                        htmlContent += `<div class="kolom-tabel"><table><thead><tr><th class="text-center" style="width: 25px;">No</th><th>Nama</th><th class="text-right" style="width: 95px;">Jumlah</th><th class="text-center" style="width: 55px;">Status</th></tr></thead><tbody>`;
+                        dataTengah.forEach((item, index) => {
+                            const labelBulan = this.searchQuery.trim() !== '' ? ` (${item.bulanTarget})` : '';
+                            htmlContent += `<tr><td class="text-center font-mono">${index + 31}</td><td><b>${item.nama}</b>${labelBulan}</td><td class="text-right font-mono">${this.formatRupiah(item.lunas ? item.uangMasuk : item.tagihan)}</td><td class="text-center">${item.lunas ? '<span class="status-lunas">LUNAS</span>' : '<span class="status-belum">BELUM</span>'}</td></tr>`;
+                        });
+                        htmlContent += `</tbody></table></div>`;
 
-    htmlContent += `
-                                    </tbody>
-                                </table>
-                            </div>
+                        // Kolom Kanan
+                        htmlContent += `<div class="kolom-tabel"><table><thead><tr><th class="text-center" style="width: 25px;">No</th><th>Nama</th><th class="text-right" style="width: 95px;">Jumlah</th><th class="text-center" style="width: 55px;">Status</th></tr></thead><tbody>`;
+                        dataKanan.forEach((item, index) => {
+                            const labelBulan = this.searchQuery.trim() !== '' ? ` (${item.bulanTarget})` : '';
+                            htmlContent += `<tr><td class="text-center font-mono">${index + 61}</td><td><b>${item.nama}</b>${labelBulan}</td><td class="text-right font-mono">${this.formatRupiah(item.lunas ? item.uangMasuk : item.tagihan)}</td><td class="text-center">${item.lunas ? '<span class="status-lunas">LUNAS</span>' : '<span class="status-belum">BELUM</span>'}</td></tr>`;
+                        });
+                        htmlContent += `</tbody></table></div>`;
 
-                            <div class="kolom-tabel">
-                                <table>
-                                    <thead>
-                                        <tr>
-                                            <th class="text-center" style="width: 25px;">No</th>
-                                            <th>Nama</th>
-                                            <th class="text-right" style="width: 95px;">Jumlah</th>
-                                            <th class="text-center" style="width: 55px;">Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>`;
+                    // =========================================================================
+                    // LOGIKA OTOMATIS B: JIKA TAB KAMPUNG (SHEET2) -> MAKA CETAK 2 KOLOM (40-40)
+                    // =========================================================================
+                    } else {
+                        const dataKiri = listData.slice(0, 40);
+                        const dataKanan = listData.slice(40, 80);
 
-                                    dataKanan.forEach((item, index) => {
-                                        const labelBulan = this.searchQuery.trim() !== '' ? ` (${item.bulanTarget})` : '';
-                                        const txtStatus = item.lunas ? '<span class="status-lunas">LUNAS</span>' : '<span class="status-belum">BELUM</span>';
-                                        htmlContent += `
-                                        <tr>
-                                            <td class="text-center font-mono">${index + 61}</td>
-                                            <td><b>${item.nama}</b>${labelBulan}</td>
-                                            <td class="text-right font-mono">${this.formatRupiah(item.lunas ? item.uangMasuk : item.tagihan)}</td>
-                                            <td class="text-center">${txtStatus}</td>
-                                        </tr>`;
-                                    });
+                        // Font dibuat sedikit lebih longgar (10.5px) karena hanya membagi 2 kolom besar
+                        htmlContent += `<style>body { font-size: 10.5px; } th, td { padding: 2.2px 5px; line-height: 1.2; } th { font-size: 9px; }</style>`;
 
-    htmlContent += `
-                                    </tbody>
-                                </table>
-                            </div>
+                        // Kolom Kiri
+                        htmlContent += `<div class="kolom-tabel"><table><thead><tr><th class="text-center" style="width: 25px;">No</th><th>Nama</th><th class="text-right" style="width: 95px;">Jumlah</th><th class="text-center" style="width: 55px;">Status</th></tr></thead><tbody>`;
+                        dataKiri.forEach((item, index) => {
+                            const labelBulan = this.searchQuery.trim() !== '' ? ` (${item.bulanTarget})` : '';
+                            htmlContent += `<tr><td class="text-center font-mono">${index + 1}</td><td><b>${item.nama}</b>${labelBulan}</td><td class="text-right font-mono">${this.formatRupiah(item.lunas ? item.uangMasuk : item.tagihan)}</td><td class="text-center">${item.lunas ? '<span class="status-lunas">LUNAS</span>' : '<span class="status-belum">BELUM</span>'}</td></tr>`;
+                        });
+                        htmlContent += `</tbody></table></div>`;
 
-                        </div>
-                    </body>
-                    </html>`;
+                        // Kolom Kanan
+                        htmlContent += `<div class="kolom-tabel"><table><thead><tr><th class="text-center" style="width: 25px;">No</th><th>Nama</th><th class="text-right" style="width: 95px;">Jumlah</th><th class="text-center" style="width: 55px;">Status</th></tr></thead><tbody>`;
+                        dataKanan.forEach((item, index) => {
+                            const labelBulan = this.searchQuery.trim() !== '' ? ` (${item.bulanTarget})` : '';
+                            htmlContent += `<tr><td class="text-center font-mono">${index + 41}</td><td><b>${item.nama}</b>${labelBulan}</td><td class="text-right font-mono">${this.formatRupiah(item.lunas ? item.uangMasuk : item.tagihan)}</td><td class="text-center">${item.lunas ? '<span class="status-lunas">LUNAS</span>' : '<span class="status-belum">BELUM</span>'}</td></tr>`;
+                        });
+                        htmlContent += `</tbody></table></div>`;
+                    }
+
+                    htmlContent += `
+                                </div>
+                            </body>
+                            </html>`;
 
                     printWindow.document.write(htmlContent);
                     printWindow.document.close();
 
-                    setTimeout(() => {
-                        printWindow.print();
-                    }, 500);
+                    setTimeout(() => { printWindow.print(); }, 500);
                 },
 
                 totalMasuk() { 
