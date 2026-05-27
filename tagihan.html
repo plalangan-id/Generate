@@ -70,73 +70,80 @@
         </div>
     </header>
 
-    <div class="mb-2 flex gap-2 justify-between items-center bg-slate-800/50 p-2 rounded-lg border border-slate-700/60">
-        <div class="flex gap-1.5 items-center">
-            <button @click="filterStatus = 'semua'" :class="filterStatus === 'semua' ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-300'" class="text-[10px] font-semibold px-2 py-0.5 rounded transition cursor-pointer">Semua</button>
-            <button @click="filterStatus = 'belum'" :class="filterStatus === 'belum' ? 'bg-rose-600 text-white border-rose-500' : 'bg-slate-700 text-slate-300'" class="text-[10px] font-semibold px-2 py-0.5 rounded transition flex items-center gap-1 cursor-pointer">
-                Belum Bayar <span class="bg-slate-900/60 text-rose-300 px-1 rounded-sm text-[9px]" x-text="countBelum()">0</span>
+    <div class="mb-2 flex flex-col gap-2 bg-slate-800/50 p-2 rounded-lg border border-slate-700/60">
+        <div class="flex gap-1.5 items-center justify-between">
+            <div class="flex gap-1.5 items-center">
+                <button @click="filterStatus = 'semua'" :class="filterStatus === 'semua' ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-300'" class="text-[10px] font-semibold px-2 py-0.5 rounded transition cursor-pointer">Semua</button>
+                <button @click="filterStatus = 'belum'" :class="filterStatus === 'belum' ? 'bg-rose-600 text-white border-rose-500' : 'bg-slate-700 text-slate-300'" class="text-[10px] font-semibold px-2 py-0.5 rounded transition flex items-center gap-1 cursor-pointer">
+                    Belum Bayar <span class="bg-slate-900/60 text-rose-300 px-1 rounded-sm text-[9px]" x-text="countBelum()">0</span>
+                </button>
+            </div>
+            <button @click="generateMassal()" :disabled="loading" class="bg-slate-700 hover:bg-slate-600 active:scale-95 text-slate-300 text-[10px] font-semibold px-2 py-0.5 rounded border border-slate-600 shadow-sm transition flex items-center gap-1 disabled:opacity-50 cursor-pointer">
+                <span x-show="!loading">⚡ Reset Bulan</span>
+                <span x-show="loading">Proses...</span>
             </button>
         </div>
-        <button @click="generateMassal()" :disabled="loading" class="bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold text-[10px] px-2.5 py-1 rounded shadow transition flex items-center gap-1 disabled:opacity-50 cursor-pointer">
-            <span x-show="!loading">⚡ Reset Bulan Ini</span>
-            <span x-show="loading">Proses...</span>
+        
+        <button @click="printLaporanBukuTamu()" :disabled="loading || filteredMembers().length === 0" class="w-full bg-emerald-600 hover:bg-emerald-500 active:scale-98 text-white font-bold text-[10px] py-1.5 rounded border border-emerald-500 shadow transition flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer">
+            🖨️ Cetak / Save PDF via Tab Baru (Anti-Blank)
         </button>
     </div>
 
-    <main class="bg-slate-800 rounded-lg border border-slate-700 shadow-md overflow-hidden mb-3">
-        <div class="p-1.5 bg-slate-900/50 border-b border-slate-700">
+    <main class="bg-slate-800 rounded-lg border border-slate-700 shadow-md overflow-hidden mb-3 flex flex-col">
+        <div class="p-1.5 bg-slate-900/50 border-b border-slate-700 shrink-0">
             <input type="text" x-model="searchQuery" placeholder="Cari nama member..." class="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500">
         </div>
 
-        <div class="overflow-x-auto relative">
+        <div class="overflow-x-auto relative flex flex-col w-full">
             <div x-show="loading" class="absolute inset-0 bg-slate-900/80 flex items-center justify-center text-xs text-emerald-400 font-semibold z-10">
                 Memuat Data Google Sheets...
             </div>
 
-            <table class="w-full text-left border-collapse">
+            <table class="w-full text-left border-collapse table-fixed shrink-0">
                 <thead>
                     <tr class="bg-slate-900 text-slate-400 uppercase text-[9px] font-bold tracking-wider border-b border-slate-700">
-                        <th class="py-1.5 px-2 text-center w-8">No</th>
+                        <th class="py-1.5 px-2 text-center w-10">No</th>
                         <th class="py-1.5 px-2">Nama Member</th>
-                        <th class="py-1.5 px-2 text-right">Tagihan</th>
+                        <th class="py-1.5 px-2 text-right w-24">Tagihan</th>
                         <th class="py-1.5 px-2 text-center w-20">Status</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-700/40 text-xs">
-                    <template x-for="(item, index) in filteredMembers()" :key="item.id + '_' + item.bulanTarget + '_' + currentSheet">
-                        <tr class="hover:bg-slate-700/20 transition-colors" :class="item.lunas ? 'bg-emerald-950/10' : 'bg-rose-950/10'">
-                            <td class="py-1 px-2 text-center text-slate-500 font-mono text-[11px]" x-text="index + 1"></td>
-                            <td class="py-1 px-2 font-medium text-slate-200 truncate max-w-[140px]">
-                                <span class="font-semibold" x-text="item.nama"></span>
-                                <span x-show="searchQuery.trim() !== ''" class="inline-block bg-slate-950 text-amber-400 font-bold text-[9px] px-1 rounded ml-1 uppercase" x-text="item.bulanTarget"></span>
-                                <span class="block text-[9px] text-slate-400 font-normal" x-text="item.paket"></span>
-                            </td>
-                            <td class="py-1 px-2 text-right font-mono text-[11px] text-slate-300 font-semibold" x-text="formatRupiah(item.lunas ? item.uangMasuk : item.tagihan)"></td>
-                            <td class="py-1 px-2 text-center">
-                                <button @click="toggleBayar(item)" 
-                                        :disabled="item.lunas"
-                                        :class="item.lunas ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30 opacity-75' : 'bg-rose-500/20 text-rose-400 border-rose-500/30 cursor-pointer active:scale-95'"
-                                        class="w-full text-[10px] font-bold py-0.5 px-1 rounded border transition-all">
-                                    <span x-text="item.lunas ? 'LUNAS' : 'BAYAR'"></span>
-                                </button>
-                            </td>
-                        </tr>
-                    </template>
-                    <template x-if="filteredMembers().length === 0 && !loading">
-                        <tr>
-                            <td colspan="4" class="py-4 text-center text-xs text-slate-500 italic">Data tidak ditemukan.</td>
-                        </tr>
-                    </template>
-                </tbody>
             </table>
+
+            <div class="overflow-y-auto max-h-[380px] w-full min-h-[100px] bg-slate-800/20">
+                <table class="w-full text-left border-collapse table-fixed">
+                    <tbody class="divide-y divide-slate-700/40 text-xs">
+                        <template x-for="(item, index) in filteredMembers()" :key="item.id + '_' + item.bulanTarget + '_' + currentSheet">
+                            <tr class="hover:bg-slate-700/20 transition-colors" :class="item.lunas ? 'bg-emerald-950/10' : 'bg-rose-950/10'">
+                                <td class="py-1 px-2 text-center text-slate-500 font-mono text-[11px] w-10" x-text="index + 1"></td>
+                                <td class="py-1 px-2 font-medium text-slate-200 truncate">
+                                    <span class="font-semibold block truncate" x-text="item.nama"></span>
+                                    <div class="flex items-center gap-1 mt-0.5">
+                                        <span class="text-[9px] text-slate-400 font-normal" x-text="item.paket"></span>
+                                        <span x-show="searchQuery.trim() !== ''" class="inline-block bg-slate-950 text-amber-400 font-bold text-[8px] px-1 rounded uppercase" x-text="item.bulanTarget"></span>
+                                    </div>
+                                </td>
+                                <td class="py-1 px-2 text-right font-mono text-[11px] text-slate-300 font-semibold w-24" x-text="formatRupiah(item.lunas ? item.uangMasuk : item.tagihan)"></td>
+                                <td class="py-1 px-2 text-center w-20">
+                                    <button @click="toggleBayar(item)" 
+                                            :disabled="item.lunas"
+                                            :class="item.lunas ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30 opacity-75' : 'bg-rose-500/20 text-rose-400 border-rose-500/30 cursor-pointer active:scale-95'"
+                                            class="w-full text-[10px] font-bold py-0.5 px-1 rounded border transition-all">
+                                        <span x-text="item.lunas ? 'LUNAS' : 'BAYAR'"></span>
+                                    </button>
+                                </td>
+                            </tr>
+                        </template>
+                        <template x-if="filteredMembers().length === 0 && !loading">
+                            <tr>
+                                <td colspan="4" class="py-4 text-center text-xs text-slate-500 italic">Data tidak ditemukan.</td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </main>
-
-    <div id="additional-features" class="space-y-2">
-        <button @click="printLaporanBukuTamu()" :disabled="loading || filteredMembers().length === 0" class="w-full bg-slate-700 hover:bg-slate-600 active:scale-98 text-slate-200 font-bold text-xs py-2 rounded-lg border border-slate-600 shadow transition flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer">
-            🖨️ Cetak / Save PDF via Tab Baru (Anti-Blank)
-        </button>
-    </div>
 
     <script>
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxyQyxZ2jNdxbs_A1KtgZfvp2tnbJU56jq_G_XvTyo_hFOwvZRyrlPjSMCbXzJaBmnv/exec";
@@ -201,7 +208,6 @@
                 },
 
                 async toggleBayar(item) {
-                    // FITUR LOCK: Jika status item sudah LUNAS, kunci fungsi agar tidak bisa klik balik ke BAYAR
                     if (item.lunas) return;
 
                     const statusTarget = !item.lunas;
@@ -242,7 +248,6 @@
                             @page { size: a4 landscape; margin: 0.25in; }
                             body { font-family: Arial, sans-serif; color: #000; background: #fff; margin: 0; padding: 0; }
                             
-                            /* FORCE TRICK: Paksa PDF untuk mengunci dokumen tetap di 1 halaman penuh */
                             html, body, .grid-container, table, tr { 
                                 page-break-inside: avoid !important; 
                                 break-inside: avoid !important;
@@ -279,15 +284,12 @@
                         </div>
                         <div class="grid-container">`;
 
-                    // =========================================================================
-                    // LOGIKA OTOMATIS A: JIKA TAB WIFI (SHEET1) -> MAKA CETAK 3 KOLOM (30-30-30)
-                    // =========================================================================
                     if (this.currentSheet === 'Sheet1') {
                         const dataKiri = listData.slice(0, 30);
                         const dataTengah = listData.slice(30, 60);
                         const dataKanan = listData.slice(60, 90);
 
-                        htmlContent += `<style>body { font-size: 8.5px; } th, td { padding: 2px 4px; line-height: 1.15; } th { font-size: 8.5px; }</style>`;
+                        htmlContent += `<style>body { font-size: 9.5px; } th, td { padding: 2px 4px; line-height: 1.15; } th { font-size: 8.5px; }</style>`;
 
                         // Kolom Kiri
                         htmlContent += `<div class="kolom-tabel"><table><thead><tr><th class="text-center" style="width: 25px;">No</th><th>Nama</th><th class="text-right" style="width: 95px;">Jumlah</th><th class="text-center" style="width: 55px;">Status</th></tr></thead><tbody>`;
@@ -313,15 +315,11 @@
                         });
                         htmlContent += `</tbody></table></div>`;
 
-                    // =========================================================================
-                    // LOGIKA OTOMATIS B: JIKA TAB KAMPUNG (SHEET2) -> MAKA CETAK 2 KOLOM (40-40)
-                    // =========================================================================
                     } else {
                         const dataKiri = listData.slice(0, 40);
                         const dataKanan = listData.slice(40, 80);
 
-                        // Font dibuat sedikit lebih longgar (10.5px) karena hanya membagi 2 kolom besar
-                        htmlContent += `<style>body { font-size: 9.5px; } th, td { padding: 2.2px 5px; line-height: 1.2; } th { font-size: 9px; }</style>`;
+                        htmlContent += `<style>body { font-size: 10.5px; } th, td { padding: 2.2px 5px; line-height: 1.2; } th { font-size: 9px; }</style>`;
 
                         // Kolom Kiri
                         htmlContent += `<div class="kolom-tabel"><table><thead><tr><th class="text-center" style="width: 25px;">No</th><th>Nama</th><th class="text-right" style="width: 95px;">Jumlah</th><th class="text-center" style="width: 55px;">Status</th></tr></thead><tbody>`;
