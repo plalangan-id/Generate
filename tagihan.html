@@ -149,15 +149,18 @@
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxyQyxZ2jNdxbs_A1KtgZfvp2tnbJU56jq_G_XvTyo_hFOwvZRyrlPjSMCbXzJaBmnv/exec";
 
         function billApp() {
+            const listBulan = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+            const bulanSekarang = listBulan[new Date().getMonth()];
+
             return {
                 currentSheet: 'Sheet1', 
-                selectedMonth: 'Mei', 
+                selectedMonth: bulanSekarang, 
                 filterStatus: 'semua',
                 searchQuery: '',
                 activeBills: [],
                 loading: false,
 
-                listBulan: ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"],
+                listBulan: listBulan,
 
                 initData() { this.loadBulan(); },
                 switchTab(sheetName) {
